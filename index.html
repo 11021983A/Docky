@@ -936,6 +936,17 @@
                         ${isInTelegram ? '<p><small>📱 Telegram бот уведомлен о скачивании</small></p>' : ''}
                     </div>
                 `;
+            } else if (type === 'direct_link') {
+                resultDiv.innerHTML = `
+                    <div class="success-box">
+                        <h3>🔗 Прямая ссылка открыта!</h3>
+                        <p><strong>Актив:</strong> ${asset.title}</p>
+                        <p><strong>Файл:</strong> ${asset.filename}</p>
+                        <p><strong>📥 Документ открыт в новой вкладке</strong> - скачивание DOCX файла должно начаться автоматически.</p>
+                        <p><small>💡 Если новая вкладка не открылась, разрешите всплывающие окна</small></p>
+                        ${isInTelegram ? '<p><small>📱 Telegram бот уведомлен об открытии ссылки</small></p>' : ''}
+                    </div>
+                `;
             } else if (type === 'email_requested') {
                 resultDiv.innerHTML = `
                     <div class="success-box">
