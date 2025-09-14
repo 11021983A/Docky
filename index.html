@@ -131,13 +131,6 @@
             box-shadow: 0 10px 30px rgba(102, 126, 234, 0.2);
         }
 
-        .asset-card.selected {
-            background: var(--tg-theme-button-color, linear-gradient(135deg, #667eea 0%, #764ba2 100%));
-            color: var(--tg-theme-button-text-color, white);
-            transform: translateY(-5px);
-            box-shadow: 0 15px 35px rgba(102, 126, 234, 0.3);
-        }
-
         .asset-icon {
             font-size: 3em;
             margin-bottom: 15px;
@@ -168,15 +161,12 @@
             font-size: 0.8em;
         }
 
-        .asset-info {
-            margin-top: 15px;
-            font-size: 0.8em;
-            opacity: 0.7;
-        }
-
-        .telegram-app .asset-info {
-            margin-top: 10px;
-            font-size: 0.7em;
+        .action-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin: 30px 0;
+            padding: 0 10px;
         }
 
         .btn {
@@ -224,6 +214,27 @@
         .btn-telegram {
             background: var(--tg-theme-button-color);
             color: var(--tg-theme-button-text-color);
+        }
+
+        .btn-action {
+            padding: 18px 15px;
+            font-size: 0.95em;
+            border-radius: 12px;
+            margin: 0;
+            text-align: center;
+            line-height: 1.2;
+        }
+
+        .btn-back {
+            grid-column: 1 / -1;
+            margin-top: 10px;
+            padding: 12px 20px;
+            font-size: 0.9em;
+        }
+
+        .telegram-app .btn-action {
+            padding: 15px 12px;
+            font-size: 0.9em;
         }
 
         .email-form {
@@ -464,27 +475,21 @@
                 <div class="asset-grid" id="assetGrid">
                     <!-- Карточки активов будут добавлены через JavaScript -->
                 </div>
-
-                <div style="text-align: center; margin-top: 30px;">
-                    <button class="btn btn-telegram" onclick="nextStep()" id="selectAssetBtn" disabled>
-                        Продолжить
-                    </button>
-                </div>
             </div>
 
             <!-- Шаг 2: Выбор действия -->
             <div class="step" id="step2">
                 <div id="selectedAssetInfo"></div>
 
-                <div style="text-align: center; margin: 30px 0;">
-                    <button class="btn btn-telegram" onclick="downloadDocument()">
+                <div class="action-buttons">
+                    <button class="btn btn-telegram btn-action" onclick="downloadDocumentDirect()">
                         📄 Скачать документ
                     </button>
-                    <button class="btn btn-telegram" onclick="showEmailForm()">
+                    <button class="btn btn-telegram btn-action" onclick="showEmailForm()">
                         📧 Отправить на email
                     </button>
-                    <button class="btn btn-secondary" onclick="goBack()">
-                        🔙 Назад
+                    <button class="btn btn-secondary btn-back" onclick="goBack()">
+                        🔙 Назад к выбору
                     </button>
                 </div>
 
@@ -542,71 +547,63 @@
         const tg = window.Telegram?.WebApp;
         let isInTelegram = !!tg;
 
-        // Данные об активах (синхронизировано с ботом)
+        // ЧИСТЫЕ данные об активах (БЕЗ количества документов и сроков!)
         const ASSETS = {
             'бизнес-центр': {
                 icon: '🏢',
                 title: 'Бизнес-центр',
                 description: 'Офисные здания и бизнес-центры',
-                documents: 15,
-                processing: '7-10 дней',
-                filename: 'бизнес-центр.pdf'
+                filename: 'БЦ.docx',
+                url: 'https://github.com/11021983A/Docky/raw/main/БЦ.docx'
             },
             'торговый-центр': {
                 icon: '🛍️',
                 title: 'Торговый центр',
                 description: 'Торговые центры и комплексы',
-                documents: 18,
-                processing: '10-14 дней',
-                filename: 'торговый-центр.pdf'
+                filename: 'ТЦ.docx',
+                url: 'https://github.com/11021983A/Docky/raw/main/ТЦ.docx'
             },
             'складской-комплекс': {
                 icon: '📦',
                 title: 'Складской комплекс',
                 description: 'Складские помещения и комплексы',
-                documents: 12,
-                processing: '5-7 дней',
-                filename: 'складской-комплекс.pdf'
+                filename: 'Склад.docx',
+                url: 'https://github.com/11021983A/Docky/raw/main/Склад.docx'
             },
             'гостиница': {
                 icon: '🏨',
                 title: 'Гостиница',
                 description: 'Гостиничные комплексы',
-                documents: 20,
-                processing: '14-21 день',
-                filename: 'гостиница.pdf'
+                filename: 'Гостиница.docx',
+                url: 'https://github.com/11021983A/Docky/raw/main/Гостиница.docx'
             },
             'бизнес': {
                 icon: '💼',
                 title: 'Бизнес',
                 description: 'Доли в бизнесе и акции',
-                documents: 25,
-                processing: '21-30 дней',
-                filename: 'бизнес.pdf'
+                filename: 'Бизнес_КИ.docx',
+                url: 'https://github.com/11021983A/Docky/raw/main/Бизнес_КИ.docx'
             },
             'комплекс-имущества': {
                 icon: '🏗️',
                 title: 'Комплекс имущества',
                 description: 'Имущественные комплексы',
-                documents: 22,
-                processing: '14-21 день',
-                filename: 'комплекс-имущества.pdf'
+                filename: 'Бизнес_КИ.docx',
+                url: 'https://github.com/11021983A/Docky/raw/main/Бизнес_КИ.docx'
             },
             'машины-и-оборудование': {
                 icon: '⚙️',
                 title: 'Машины и оборудование',
                 description: 'Промышленное оборудование',
-                documents: 16,
-                processing: '7-14 дней',
-                filename: 'машины-и-оборудование.pdf'
+                filename: 'МиО.docx',
+                url: 'https://github.com/11021983A/Docky/raw/main/МиО.docx'
             },
             'имущественные-права-на-жилье': {
                 icon: '🏠',
                 title: 'ИПС на жилье',
                 description: 'Права на жилую недвижимость',
-                documents: 14,
-                processing: '10-14 дней',
-                filename: 'имущественные-права-на-жилье.pdf'
+                filename: 'ИПС_жилье.docx',
+                url: 'https://github.com/11021983A/Docky/raw/main/ИПС_жилье.docx'
             }
         };
 
@@ -651,7 +648,7 @@
             }
         }
 
-        // Создание карточек активов
+        // Создание карточек активов (ТОЛЬКО нужная информация)
         function createAssetCards() {
             const grid = document.getElementById('assetGrid');
             grid.innerHTML = '';
@@ -662,37 +659,25 @@
                 card.setAttribute('data-asset', key);
                 card.onclick = () => selectAsset(key, card);
                 
+                // ВНИМАНИЕ: НИКАКИХ documents и processing!
                 card.innerHTML = `
                     <div class="asset-icon">${asset.icon}</div>
                     <div class="asset-title">${asset.title}</div>
                     <div class="asset-description">${asset.description}</div>
-                    <div class="asset-info">
-                        📄 ${asset.documents} документов<br>
-                        ⏱️ ${asset.processing}
-                    </div>
                 `;
                 
                 grid.appendChild(card);
             });
         }
 
-        // Выбор актива
+        // Выбор актива - сразу переходим к действиям
         function selectAsset(assetKey, cardElement) {
-            document.querySelectorAll('.asset-card').forEach(card => {
-                card.classList.remove('selected');
-            });
-            
-            cardElement.classList.add('selected');
             selectedAsset = assetKey;
             
-            document.getElementById('selectAssetBtn').disabled = false;
-            
-            // Настройка Telegram кнопки
-            if (isInTelegram) {
-                tg.MainButton.setText('ПРОДОЛЖИТЬ');
-                tg.MainButton.show();
-                tg.MainButton.onClick(nextStep);
-            }
+            // Сразу переходим к шагу 2 без кнопки "Продолжить"
+            currentStep = 2;
+            showStep(currentStep);
+            showSelectedAssetInfo();
 
             // Haptic feedback для Telegram
             if (isInTelegram && tg.HapticFeedback) {
@@ -757,36 +742,38 @@
             document.getElementById('progressFill').style.width = `${progress}%`;
         }
 
-        // Показ информации о выбранном активе
+        // Показ информации о выбранном активе (упрощенная версия)
         function showSelectedAssetInfo() {
             const asset = ASSETS[selectedAsset];
             const infoDiv = document.getElementById('selectedAssetInfo');
             
+            // ВНИМАНИЕ: ТОЛЬКО основная информация!
             infoDiv.innerHTML = `
                 <div class="info-box">
                     <h3>${asset.icon} ${asset.title}</h3>
-                    <p><strong>Описание:</strong> ${asset.description}</p>
-                    <p><strong>Количество документов:</strong> ${asset.documents}</p>
-                    <p><strong>Время обработки:</strong> ${asset.processing}</p>
+                    <p>${asset.description}</p>
+                    <p><strong>Файл:</strong> ${asset.filename}</p>
                 </div>
             `;
         }
 
-        // Скачивание документа
-        function downloadDocument() {
+        // Прямое скачивание документа (исправленная версия)
+        function downloadDocumentDirect() {
             const asset = ASSETS[selectedAsset];
             
-            // Используем прямую ссылку на документ с GitHub
+            // Используем правильную прямую ссылку GitHub для скачивания
             const downloadUrl = asset.url;
             
-            // Скачиваем файл
+            // Принудительно открываем ссылку - GitHub автоматически начнет скачивание DOCX
             const link = document.createElement('a');
             link.href = downloadUrl;
-            link.download = asset.filename;
             link.target = '_blank';
+            link.rel = 'noopener noreferrer';
             
-            // Добавляем атрибуты для лучшей совместимости
-            link.setAttribute('rel', 'noopener noreferrer');
+            // Для мобильных устройств добавляем download атрибут
+            if (/Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+                link.download = asset.filename;
+            }
             
             document.body.appendChild(link);
             link.click();
@@ -798,14 +785,12 @@
             
             // Уведомляем Telegram
             if (isInTelegram) {
-                // Отправляем данные в бота о скачивании
                 tg.sendData(JSON.stringify({
                     action: 'download_completed',
                     asset_type: selectedAsset,
                     timestamp: new Date().toISOString()
                 }));
                 
-                // Haptic feedback
                 if (tg.HapticFeedback) {
                     tg.HapticFeedback.notificationOccurred('success');
                 }
@@ -929,22 +914,12 @@
             if (type === 'download') {
                 resultDiv.innerHTML = `
                     <div class="success-box">
-                        <h3>✅ Документ скачан!</h3>
+                        <h3>✅ Документ открыт для скачивания!</h3>
                         <p><strong>Актив:</strong> ${asset.title}</p>
-                        <p><strong>Файл:</strong> ${asset.filename}</p>
-                        <p>Проверьте папку "Загрузки" на вашем устройстве.</p>
+                        <p><strong>Файл:</strong> ${asset.filename} (DOCX)</p>
+                        <p><strong>📥 Скачивание началось автоматически</strong></p>
+                        <p><small>💡 Если файл не скачался, проверьте блокировку всплывающих окон в браузере</small></p>
                         ${isInTelegram ? '<p><small>📱 Telegram бот уведомлен о скачивании</small></p>' : ''}
-                    </div>
-                `;
-            } else if (type === 'direct_link') {
-                resultDiv.innerHTML = `
-                    <div class="success-box">
-                        <h3>🔗 Прямая ссылка открыта!</h3>
-                        <p><strong>Актив:</strong> ${asset.title}</p>
-                        <p><strong>Файл:</strong> ${asset.filename}</p>
-                        <p><strong>📥 Документ открыт в новой вкладке</strong> - скачивание DOCX файла должно начаться автоматически.</p>
-                        <p><small>💡 Если новая вкладка не открылась, разрешите всплывающие окна</small></p>
-                        ${isInTelegram ? '<p><small>📱 Telegram бот уведомлен об открытии ссылки</small></p>' : ''}
                     </div>
                 `;
             } else if (type === 'email_requested') {
@@ -1001,12 +976,6 @@
             selectedAsset = null;
             showStep(1);
             hideEmailForm();
-            
-            document.querySelectorAll('.asset-card').forEach(card => {
-                card.classList.remove('selected');
-            });
-            
-            document.getElementById('selectAssetBtn').disabled = true;
             
             // Настройка Telegram кнопок
             if (isInTelegram) {
