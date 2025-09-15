@@ -19,10 +19,10 @@ from flask import Flask, jsonify
 # Загружаем переменные из .env файла
 load_dotenv()
 
-# Настройка логирования
+# Настройка логирования с более детальным выводом
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    level=logging.INFO,
+    level=logging.DEBUG,  # Изменено на DEBUG для более подробных логов
     handlers=[
         logging.FileHandler('bot.log'),
         logging.StreamHandler()
@@ -139,12 +139,15 @@ def validate_email(email: str) -> bool:
 def send_email_with_document(recipient_email: str, asset_type: str, user_name: str) -> bool:
     """Отправка email с документом через Mail.ru"""
     if not EMAIL_USER or not EMAIL_PASSWORD:
-        logger.warning("Email настройки не заданы")
+        logger.error("Email настройки не заданы - EMAIL_USER или EMAIL_PASSWORD отсутствуют")
         return False
+    
+    logger.info(f"Начинаем отправку email на {recipient_email} для актива {asset_type}")
     
     try:
         asset = ASSETS.get(asset_type)
         if not asset:
+            logger.error(f"Актив {asset_type} не найден в ASSETS")
             return False
             
         # Создаем сообщение
@@ -209,6 +212,7 @@ def send_email_with_document(recipient_email: str, asset_type: str, user_name: s
         # Пытаемся загрузить и прикрепить документ
         try:
             document_url = asset['url']
+            logger.info(f"Загружаем документ с URL: {document_url}")
             response = requests.get(document_url, timeout=30)
             
             if response.status_code == 200:
@@ -228,23 +232,34 @@ def send_email_with_document(recipient_email: str, asset_type: str, user_name: s
             logger.error(f"Ошибка загрузки документа: {e}")
         
         # Отправляем email
+        logger.info(f"Подключаемся к SMTP серверу {SMTP_SERVER}:{SMTP_PORT}")
         with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
+            server.set_debuglevel(1)  # Включаем debug для SMTP
             server.starttls()
+            logger.info(f"Логинимся как {EMAIL_USER}")
             server.login(EMAIL_USER, EMAIL_PASSWORD)
             server.send_message(msg)
         
         logger.info(f"Email успешно отправлен на {recipient_email}")
         return True
         
+    except smtplib.SMTPAuthenticationError as e:
+        logger.error(f"Ошибка аутентификации SMTP: {e}")
+        logger.error("Проверьте EMAIL_PASSWORD - нужен пароль приложения, а не пароль от почты")
+        return False
+    except smtplib.SMTPException as e:
+        logger.error(f"SMTP ошибка: {e}")
+        return False
     except Exception as e:
-        logger.error(f"Ошибка отправки email: {e}")
+        logger.error(f"Общая ошибка отправки email: {e}")
+        logger.exception("Полный traceback:")
         return False
 
 @bot.message_handler(commands=['start'])
 def start_command(message):
     """Стартовое сообщение с Web App"""
     user_id = message.from_user.id
-    user_name = message.from_user.first_name
+    user_name = message.from_user.first_name or "Пользователь"
     username = message.from_user.username
     
     # Инициализируем сессию пользователя
@@ -254,21 +269,17 @@ def start_command(message):
         'started_at': datetime.now()
     }
     
-    # Создаем клавиатуру с Web App
+    # Создаем клавиатуру с Web App (только одна кнопка)
     keyboard = types.InlineKeyboardMarkup()
     
     # Кнопка Web App
     webapp_btn = types.InlineKeyboardButton(
-        text="📋 Открыть каталог документов",
+        text="Выберите актив",
         web_app=types.WebAppInfo(url=WEBAPP_URL)
     )
     keyboard.add(webapp_btn)
     
-    # Дополнительные кнопки
-    help_btn = types.InlineKeyboardButton("ℹ️ Справка", callback_data="help")
-    contact_btn = types.InlineKeyboardButton("📞 Контакты", callback_data="contacts")
-    keyboard.add(help_btn, contact_btn)
-    
+    # Обновленный текст приветствия от Сбера
     welcome_text = f"""
 🤖 Привет, {user_name}! Меня зовут **Доки**!
 
@@ -319,7 +330,7 @@ def help_command(message):
     
     keyboard = types.InlineKeyboardMarkup()
     webapp_btn = types.InlineKeyboardButton(
-        "📋 Открыть каталог", 
+        "Выберите актив", 
         web_app=types.WebAppInfo(url=WEBAPP_URL)
     )
     keyboard.add(webapp_btn)
@@ -350,7 +361,7 @@ def contacts_command(message):
     
     keyboard = types.InlineKeyboardMarkup()
     webapp_btn = types.InlineKeyboardButton(
-        "📋 Открыть каталог", 
+        "Выберите актив", 
         web_app=types.WebAppInfo(url=WEBAPP_URL)
     )
     email_btn = types.InlineKeyboardButton(
@@ -392,12 +403,16 @@ def handle_web_app_data(message):
         action = web_app_data.get('action')
         
         user_id = message.from_user.id
-        user_name = message.from_user.first_name
+        user_name = message.from_user.first_name or "Пользователь"
+        
+        logger.info(f"Получены данные от Web App: action={action}, user={user_name}")
         
         if action == 'send_email':
             # Пользователь запросил отправку на email из веб-приложения
             email = web_app_data.get('email')
             asset_type = web_app_data.get('asset_type')
+            
+            logger.info(f"Запрос на отправку email: {email}, актив: {asset_type}")
             
             if not validate_email(email):
                 bot.reply_to(message, "❌ Неверный формат email адреса")
@@ -426,7 +441,7 @@ def handle_web_app_data(message):
                 # Добавляем кнопку для повторного открытия
                 keyboard = types.InlineKeyboardMarkup()
                 webapp_btn = types.InlineKeyboardButton(
-                    "📋 Открыть каталог снова", 
+                    "Выберите другой актив", 
                     web_app=types.WebAppInfo(url=WEBAPP_URL)
                 )
                 keyboard.add(webapp_btn)
@@ -475,7 +490,7 @@ def handle_web_app_data(message):
                 # Кнопки для дополнительных действий
                 keyboard = types.InlineKeyboardMarkup()
                 webapp_btn = types.InlineKeyboardButton(
-                    "📋 Выбрать другой актив", 
+                    "Выбрать другой актив", 
                     web_app=types.WebAppInfo(url=WEBAPP_URL)
                 )
                 contact_btn = types.InlineKeyboardButton("📞 Контакты", callback_data="contacts")
@@ -491,7 +506,30 @@ def handle_web_app_data(message):
         
     except Exception as e:
         logger.error(f"Ошибка обработки Web App данных: {e}")
+        logger.exception("Полный traceback:")
         bot.reply_to(message, "❌ Произошла ошибка при обработке запроса")
+
+@bot.message_handler(commands=['test_email'])
+def test_email_command(message):
+    """Команда для тестирования отправки email"""
+    user_name = message.from_user.first_name or "Тестовый пользователь"
+    
+    # Проверяем настройки email
+    if not EMAIL_USER or not EMAIL_PASSWORD:
+        bot.reply_to(message, "❌ Email настройки не заданы в переменных окружения")
+        return
+    
+    # Отправляем тестовое письмо на email администратора
+    test_email = EMAIL_USER  # Отправляем на свой же email для теста
+    
+    bot.reply_to(message, f"🔄 Отправляю тестовое письмо на {test_email}...")
+    
+    success = send_email_with_document(test_email, 'бизнес-центр', user_name)
+    
+    if success:
+        bot.reply_to(message, "✅ Тестовое письмо успешно отправлено! Проверьте почту.")
+    else:
+        bot.reply_to(message, "❌ Ошибка отправки. Проверьте логи бота.")
 
 @bot.message_handler(func=lambda message: True)
 def handle_text_messages(message):
@@ -552,7 +590,7 @@ def handle_text_messages(message):
             
             keyboard = types.InlineKeyboardMarkup()
             webapp_btn = types.InlineKeyboardButton(
-                "📋 Открыть каталог", 
+                "Выберите актив", 
                 web_app=types.WebAppInfo(url=WEBAPP_URL)
             )
             keyboard.add(webapp_btn)
@@ -583,7 +621,7 @@ def handle_text_messages(message):
         
         keyboard = types.InlineKeyboardMarkup()
         webapp_btn = types.InlineKeyboardButton(
-            "📋 Открыть каталог документов", 
+            "Выберите актив", 
             web_app=types.WebAppInfo(url=WEBAPP_URL)
         )
         help_btn = types.InlineKeyboardButton("ℹ️ Справка", callback_data="help")
@@ -632,21 +670,4 @@ def main():
         
         # Запускаем бота
         logger.info("🤖 Telegram бот запущен и готов к работе")
-        bot.polling(none_stop=True, timeout=60)
-        
-    except Exception as e:
-        logger.error(f"Критическая ошибка: {e}")
-        
-        # Уведомляем админа об ошибке
-        if ADMIN_CHAT_ID:
-            try:
-                bot.send_message(
-                    ADMIN_CHAT_ID, 
-                    f"🚨 **Критическая ошибка бота:**\n```\n{str(e)}\n```",
-                    parse_mode='Markdown'
-                )
-            except:
-                pass
-
-if __name__ == '__main__':
-    main()
+        bot
