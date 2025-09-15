@@ -13,6 +13,8 @@ from io import BytesIO
 import json
 import re
 from datetime import datetime
+from threading import Thread
+from flask import Flask, jsonify
 
 # Загружаем переменные из .env файла
 load_dotenv()
@@ -49,6 +51,22 @@ if not EMAIL_PASSWORD:
 
 # Создаем бота
 bot = telebot.TeleBot(BOT_TOKEN)
+
+# Flask приложение для health check
+app = Flask(__name__)
+
+@app.route('/')
+def home():
+    return jsonify({"status": "alive", "bot": "Доки", "version": "1.0"})
+
+@app.route('/health')
+def health():
+    return jsonify({"status": "healthy"}), 200
+
+def run_flask():
+    """Запуск Flask сервера для health check"""
+    port = int(os.environ.get('PORT', 10000))
+    app.run(host='0.0.0.0', port=port)
 
 # Хранилище для пользователей (в памяти для простоты)
 user_sessions = {}
@@ -405,7 +423,7 @@ def handle_web_app_data(message):
 
 📬 Проверьте входящие письма в течение 5 минут.
 
-🔄 Нужны документы для другого актива? Откройте каталог снова!
+📄 Нужны документы для другого актива? Откройте каталог снова!
 """
                 # Добавляем кнопку для повторного открытия
                 keyboard = types.InlineKeyboardMarkup()
@@ -434,7 +452,7 @@ def handle_web_app_data(message):
                     message,
                     f"❌ **Ошибка отправки email**\n\n"
                     f"Не удалось отправить документы для {asset['icon']} {asset['title']} на адрес `{email}`.\n\n"
-                    f"🔄 Попробуйте:\n"
+                    f"📄 Попробуйте:\n"
                     f"• Проверить правильность email\n"
                     f"• Повторить попытку через несколько минут\n"
                     f"• Написать нам напрямую: {EMAIL_USER}",
@@ -594,7 +612,7 @@ def main():
     print(f"📱 Web App: {WEBAPP_URL}")
     print(f"📧 Email: {EMAIL_USER}")
     print(f"🌐 Health Check: http://localhost:{os.environ.get('PORT', 10000)}")
-    print(f"🔧 Функции:")
+    print(f"📧 Функции:")
     print("   ✅ Telegram Web App интеграция")
     print("   ✅ Отправка email через Mail.ru")
     print("   ✅ HTTP Health Check для Render")
