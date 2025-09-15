@@ -3,570 +3,426 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Доки - Банковские документы</title>
-    
-    <!-- Telegram Web App Script -->
+    <title>Выберите актив</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
-
+        
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: var(--tg-theme-bg-color, linear-gradient(135deg, #667eea 0%, #764ba2 100%));
-            color: var(--tg-theme-text-color, #333);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
-            padding: 20px;
-            transition: all 0.3s ease;
+            color: #333;
+            padding-top: 10px;
         }
-
-        /* Telegram Web App адаптация */
-        body.telegram-app {
-            background: var(--tg-theme-bg-color);
-            padding: 10px;
-        }
-
+        
         .container {
-            max-width: 800px;
+            max-width: 500px;
             margin: 0 auto;
-            background: var(--tg-theme-secondary-bg-color, white);
-            border-radius: 20px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-            overflow: hidden;
-        }
-
-        .telegram-app .container {
-            border-radius: 10px;
-            box-shadow: none;
-        }
-
-        .header {
-            background: var(--tg-theme-button-color, linear-gradient(135deg, #667eea 0%, #764ba2 100%));
-            color: var(--tg-theme-button-text-color, white);
-            padding: 40px 30px;
-            text-align: center;
-        }
-
-        .telegram-app .header {
-            padding: 20px 15px;
-        }
-
-        .header h1 {
-            font-size: 2.5em;
-            margin-bottom: 10px;
-            font-weight: 700;
-        }
-
-        .telegram-app .header h1 {
-            font-size: 1.8em;
-        }
-
-        .header p {
-            font-size: 1.2em;
-            opacity: 0.9;
-        }
-
-        .telegram-app .header p {
-            font-size: 1em;
-        }
-
-        .content {
-            padding: 40px 30px;
-        }
-
-        .telegram-app .content {
-            padding: 20px 15px;
-        }
-
-        .step {
-            display: none;
-            animation: fadeIn 0.5s ease-in;
-        }
-
-        .step.active {
-            display: block;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .asset-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 20px;
-            margin: 30px 0;
-        }
-
-        .telegram-app .asset-grid {
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 15px;
-            margin: 20px 0;
-        }
-
-        .asset-card {
-            background: var(--tg-theme-bg-color, linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%));
-            border: 2px solid var(--tg-theme-hint-color, transparent);
-            border-radius: 15px;
-            padding: 25px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            text-align: center;
-            color: var(--tg-theme-text-color, #333);
-        }
-
-        .telegram-app .asset-card {
-            padding: 20px;
-            border-radius: 10px;
-        }
-
-        .asset-card:hover {
-            transform: translateY(-5px);
-            border-color: var(--tg-theme-button-color, #667eea);
-            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.2);
-        }
-
-        .asset-icon {
-            font-size: 3em;
-            margin-bottom: 15px;
-        }
-
-        .telegram-app .asset-icon {
-            font-size: 2.5em;
-            margin-bottom: 10px;
-        }
-
-        .asset-title {
-            font-size: 1.3em;
-            font-weight: 600;
-            margin-bottom: 10px;
-        }
-
-        .telegram-app .asset-title {
-            font-size: 1.1em;
-        }
-
-        .asset-description {
-            font-size: 0.9em;
-            opacity: 0.8;
-            line-height: 1.4;
-        }
-
-        .telegram-app .asset-description {
-            font-size: 0.8em;
-        }
-
-        .action-buttons {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-            margin: 30px 0;
             padding: 0 10px;
         }
-
+        
+        /* Убираем заголовок "Запущено в Telegram Web App" */
+        .header {
+            display: none;
+        }
+        
+        /* Компактная шапка */
+        .main-header {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 15px;
+            margin-bottom: 15px;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .main-header h1 {
+            font-size: 22px;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        
+        .main-header p {
+            font-size: 14px;
+            color: #666;
+        }
+        
+        /* Сетка активов 2x4 */
+        .assets-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .asset-card {
+            background: white;
+            border-radius: 12px;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100px;
+        }
+        
+        .asset-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
+        }
+        
+        .asset-card.selected {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .asset-icon {
+            font-size: 32px;
+            margin-bottom: 8px;
+        }
+        
+        .asset-title {
+            font-size: 14px;
+            font-weight: 600;
+            line-height: 1.2;
+        }
+        
+        /* Убираем описание для компактности */
+        .asset-description {
+            display: none;
+        }
+        
+        /* Детали актива */
+        .asset-details {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            display: none;
+            animation: slideIn 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .asset-details.active {
+            display: block;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .detail-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        
+        .detail-icon {
+            font-size: 36px;
+            margin-right: 15px;
+        }
+        
+        .detail-title {
+            flex: 1;
+        }
+        
+        .detail-title h3 {
+            font-size: 18px;
+            margin-bottom: 5px;
+        }
+        
+        .detail-title p {
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
         .btn {
-            background: var(--tg-theme-button-color, linear-gradient(135deg, #667eea 0%, #764ba2 100%));
-            color: var(--tg-theme-button-text-color, white);
+            flex: 1;
+            padding: 12px 20px;
             border: none;
-            padding: 15px 30px;
-            border-radius: 25px;
-            font-size: 1.1em;
+            border-radius: 10px;
+            font-size: 14px;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s ease;
-            margin: 10px;
-            display: inline-block;
-            text-decoration: none;
-        }
-
-        .telegram-app .btn {
-            padding: 12px 20px;
-            font-size: 1em;
-            margin: 8px;
-            border-radius: 10px;
-        }
-
-        .btn:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
-            opacity: 0.9;
-        }
-
-        .btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        .btn-secondary {
-            background: var(--tg-theme-hint-color, linear-gradient(135deg, #6c757d 0%, #495057 100%));
-        }
-
-        .btn-success {
-            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
-        }
-
-        .btn-telegram {
-            background: var(--tg-theme-button-color);
-            color: var(--tg-theme-button-text-color);
-        }
-
-        .btn-action {
-            padding: 18px 15px;
-            font-size: 0.95em;
-            border-radius: 12px;
-            margin: 0;
-            text-align: center;
-            line-height: 1.2;
-        }
-
-        .btn-back {
-            grid-column: 1 / -1;
-            margin-top: 10px;
-            padding: 12px 20px;
-            font-size: 0.9em;
-        }
-
-        .telegram-app .btn-action {
-            padding: 15px 12px;
-            font-size: 0.9em;
-        }
-
-        .email-form {
-            background: var(--tg-theme-bg-color, #f8f9fa);
-            padding: 30px;
-            border-radius: 15px;
-            margin: 20px 0;
-            border: 1px solid var(--tg-theme-hint-color, #e9ecef);
-        }
-
-        .telegram-app .email-form {
-            padding: 20px;
-            border-radius: 10px;
-        }
-
-        .email-input {
-            width: 100%;
-            padding: 15px 20px;
-            border: 2px solid var(--tg-theme-hint-color, #e9ecef);
-            border-radius: 10px;
-            font-size: 1.1em;
-            margin-bottom: 20px;
-            transition: border-color 0.3s ease;
-            background: var(--tg-theme-bg-color, white);
-            color: var(--tg-theme-text-color, #333);
-        }
-
-        .telegram-app .email-input {
-            padding: 12px 15px;
-            font-size: 1em;
-            border-radius: 8px;
-        }
-
-        .email-input:focus {
-            outline: none;
-            border-color: var(--tg-theme-button-color, #667eea);
-        }
-
-        .info-box {
-            background: var(--tg-theme-bg-color, #e3f2fd);
-            border-left: 4px solid var(--tg-theme-button-color, #2196f3);
-            padding: 20px;
-            margin: 20px 0;
-            border-radius: 5px;
-            color: var(--tg-theme-text-color, #333);
-        }
-
-        .telegram-app .info-box {
-            padding: 15px;
-            margin: 15px 0;
-        }
-
-        .success-box {
-            background: #e8f5e8;
-            border-left: 4px solid #4caf50;
-            padding: 20px;
-            margin: 20px 0;
-            border-radius: 5px;
-        }
-
-        .telegram-app .success-box {
-            padding: 15px;
-            margin: 15px 0;
-        }
-
-        .error-box {
-            background: #ffebee;
-            border-left: 4px solid #f44336;
-            padding: 20px;
-            margin: 20px 0;
-            border-radius: 5px;
-        }
-
-        .progress-bar {
-            height: 4px;
-            background: var(--tg-theme-hint-color, #e9ecef);
-            border-radius: 2px;
-            margin: 20px 0;
-            overflow: hidden;
-        }
-
-        .telegram-app .progress-bar {
-            margin: 15px 0;
-        }
-
-        .progress-fill {
-            height: 100%;
-            background: var(--tg-theme-button-color, linear-gradient(90deg, #667eea 0%, #764ba2 100%));
-            width: 0%;
-            transition: width 0.5s ease;
-        }
-
-        .step-indicator {
             display: flex;
+            align-items: center;
             justify-content: center;
-            margin: 30px 0;
+            gap: 8px;
         }
-
-        .telegram-app .step-indicator {
-            margin: 20px 0;
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
         }
-
-        .step-dot {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            background: var(--tg-theme-hint-color, #e9ecef);
-            margin: 0 5px;
-            transition: background 0.3s ease;
+        
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
         }
-
-        .step-dot.active {
-            background: var(--tg-theme-button-color, #667eea);
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
         }
-
-        .footer {
-            background: var(--tg-theme-secondary-bg-color, #f8f9fa);
-            padding: 30px;
-            text-align: center;
-            border-top: 1px solid var(--tg-theme-hint-color, #e9ecef);
-            color: var(--tg-theme-hint-color, #6c757d);
-        }
-
-        .telegram-app .footer {
+        
+        /* Модальное окно для email */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
             padding: 20px;
         }
-
-        .footer p {
-            margin: 5px 0;
+        
+        .modal.active {
+            display: flex;
         }
-
-        .telegram-indicator {
-            background: var(--tg-theme-button-color, #0088cc);
-            color: var(--tg-theme-button-text-color, white);
-            padding: 10px;
-            text-align: center;
-            font-size: 0.9em;
-            display: none;
+        
+        .modal-content {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            max-width: 400px;
+            width: 100%;
+            animation: modalSlideIn 0.3s ease;
         }
-
-        .telegram-app .telegram-indicator {
+        
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: scale(0.9);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+        
+        .modal-header {
+            margin-bottom: 20px;
+        }
+        
+        .modal-header h3 {
+            font-size: 20px;
+            margin-bottom: 5px;
+        }
+        
+        .modal-header p {
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
             display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            font-size: 14px;
         }
-
-        .hidden {
+        
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+        
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        
+        /* Уведомления */
+        .notification {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: white;
+            padding: 15px 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
             display: none;
+            z-index: 2000;
+            animation: notificationSlide 0.3s ease;
         }
-
-        @media (max-width: 768px) {
-            .container {
-                margin: 10px;
-                border-radius: 15px;
+        
+        .notification.active {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .notification.success {
+            background: #4caf50;
+            color: white;
+        }
+        
+        .notification.error {
+            background: #f44336;
+            color: white;
+        }
+        
+        @keyframes notificationSlide {
+            from {
+                opacity: 0;
+                transform: translate(-50%, -20px);
             }
-            
-            .telegram-app .container {
-                margin: 5px;
-                border-radius: 10px;
+            to {
+                opacity: 1;
+                transform: translate(-50%, 0);
             }
-            
-            .header {
-                padding: 30px 20px;
-            }
-            
-            .telegram-app .header {
-                padding: 15px 10px;
-            }
-            
-            .header h1 {
-                font-size: 2em;
-            }
-            
-            .telegram-app .header h1 {
-                font-size: 1.5em;
-            }
-            
-            .content {
-                padding: 30px 20px;
-            }
-            
-            .telegram-app .content {
-                padding: 15px 10px;
-            }
-            
-            .asset-grid {
+        }
+        
+        /* Адаптив для маленьких экранов */
+        @media (max-width: 360px) {
+            .assets-grid {
                 grid-template-columns: 1fr;
             }
             
-            .btn {
-                width: 100%;
-                margin: 5px 0;
+            .asset-card {
+                min-height: 80px;
             }
-        }
-
-        .loading {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 2px solid var(--tg-theme-button-text-color, #ffffff);
-            border-radius: 50%;
-            border-top-color: transparent;
-            animation: spin 1s ease-in-out infinite;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
         }
     </style>
 </head>
 <body>
-    <!-- Индикатор Telegram -->
-    <div class="telegram-indicator">
-        🤖 Запущено в Telegram Web App
-    </div>
-
     <div class="container">
-        <div class="header">
-            <h1>🤖 Доки</h1>
-            <p>Банковские документы для залоговой службы</p>
+        <!-- Компактная шапка -->
+        <div class="main-header">
+            <h1>Выберите тип актива</h1>
+            <p>Документы для залоговой службы</p>
         </div>
-
-        <!-- Индикатор прогресса -->
-        <div class="progress-bar">
-            <div class="progress-fill" id="progressFill"></div>
+        
+        <!-- Сетка активов -->
+        <div class="assets-grid" id="assetsGrid">
+            <!-- Активы добавляются через JavaScript -->
         </div>
-
-        <!-- Индикаторы шагов -->
-        <div class="step-indicator">
-            <div class="step-dot active" data-step="1"></div>
-            <div class="step-dot" data-step="2"></div>
-            <div class="step-dot" data-step="3"></div>
-        </div>
-
-        <div class="content">
-            <!-- Шаг 1: Выбор актива -->
-            <div class="step active" id="step1">
-                <h2 style="text-align: center; margin-bottom: 30px;">🏢 Выберите тип актива</h2>
-                
-                <div class="asset-grid" id="assetGrid">
-                    <!-- Карточки активов будут добавлены через JavaScript -->
+        
+        <!-- Детали выбранного актива -->
+        <div class="asset-details" id="assetDetails">
+            <div class="detail-header">
+                <div class="detail-icon" id="detailIcon"></div>
+                <div class="detail-title">
+                    <h3 id="detailTitle"></h3>
+                    <p id="detailDescription"></p>
                 </div>
             </div>
-
-            <!-- Шаг 2: Выбор действия -->
-            <div class="step" id="step2">
-                <div id="selectedAssetInfo"></div>
-
-                <div class="action-buttons">
-                    <button class="btn btn-telegram btn-action" onclick="downloadDocumentDirect()">
-                        📄 Скачать документ
-                    </button>
-                    <button class="btn btn-telegram btn-action" onclick="showEmailForm()">
-                        📧 Отправить на email
-                    </button>
-                    <button class="btn btn-secondary btn-back" onclick="goBack()">
-                        🔙 Назад к выбору
-                    </button>
-                </div>
-
-                <!-- Форма email с Telegram интеграцией -->
-                <div class="email-form hidden" id="emailForm">
-                    <h3>📧 Отправка на email</h3>
-                    <p>Документ будет отправлен через Telegram бота:</p>
-                    
-                    <input type="email" class="email-input" id="emailInput" 
-                           placeholder="example@mail.ru" required>
-                    
-                    <div style="text-align: center;">
-                        <button class="btn btn-success" onclick="sendEmailViaTelegram()">
-                            <span id="sendBtnText">📤 Отправить через бота</span>
-                            <span class="loading hidden" id="sendLoading"></span>
-                        </button>
-                        <button class="btn btn-secondary" onclick="hideEmailForm()">
-                            Отмена
-                        </button>
-                    </div>
-
-                    <div class="info-box" style="margin-top: 15px;">
-                        <p><strong>💡 Как это работает:</strong></p>
-                        <p>• Telegram бот получит ваш запрос</p>
-                        <p>• Документ будет отправлен через Mail.ru</p>
-                        <p>• Вы получите уведомление в чате</p>
-                    </div>
-                </div>
+            
+            <div class="info-section">
+                <p><strong>📄 Файл:</strong> <span id="detailFilename"></span></p>
             </div>
-
-            <!-- Шаг 3: Результат -->
-            <div class="step" id="step3">
-                <div id="resultMessage"></div>
-                
-                <div style="text-align: center; margin-top: 30px;">
-                    <button class="btn btn-telegram" onclick="restart()">
-                        🔄 Выбрать другой актив
-                    </button>
-                    <button class="btn btn-secondary" onclick="goBack()">
-                        🔙 Назад
-                    </button>
-                </div>
+            
+            <div class="action-buttons">
+                <button class="btn btn-primary" onclick="downloadDocument()">
+                    <span>⬇️</span> Скачать
+                </button>
+                <button class="btn btn-secondary" onclick="sendToEmail()">
+                    <span>📧</span> На email
+                </button>
             </div>
-        </div>
-
-        <div class="footer">
-            <p>🤖 Веб-приложение "Доки" для Telegram</p>
-            <p>📧 По вопросам: docs_zs@mail.ru</p>
-            <p>© 2024 Банковская залоговая служба</p>
         </div>
     </div>
-
+    
+    <!-- Модальное окно для email -->
+    <div class="modal" id="emailModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Отправка на email</h3>
+                <p>Документы будут отправлены на указанную почту</p>
+            </div>
+            
+            <div class="form-group">
+                <label for="emailInput">Email адрес</label>
+                <input 
+                    type="email" 
+                    id="emailInput" 
+                    placeholder="example@mail.ru"
+                    autocomplete="email"
+                >
+            </div>
+            
+            <div class="modal-buttons">
+                <button class="btn btn-primary" onclick="confirmSendEmail()">
+                    Отправить
+                </button>
+                <button class="btn btn-secondary" onclick="closeEmailModal()">
+                    Отмена
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Уведомления -->
+    <div class="notification" id="notification"></div>
+    
     <script>
-        // Telegram Web App инициализация
-        const tg = window.Telegram?.WebApp;
-        let isInTelegram = !!tg;
-
-        // ЧИСТЫЕ данные об активах (БЕЗ количества документов и сроков!)
-        const ASSETS = {
+        // Инициализация Telegram WebApp
+        const tg = window.Telegram.WebApp;
+        tg.ready();
+        tg.expand();
+        
+        // Данные об активах
+        const assets = {
             'бизнес-центр': {
                 icon: '🏢',
                 title: 'Бизнес-центр',
-                description: 'Офисные здания и бизнес-центры',
+                description: 'Офисные здания',
                 filename: 'БЦ.docx',
                 url: 'https://github.com/11021983A/Docky/raw/main/БЦ.docx'
             },
             'торговый-центр': {
                 icon: '🛍️',
                 title: 'Торговый центр',
-                description: 'Торговые центры и комплексы',
+                description: 'Торговые комплексы',
                 filename: 'ТЦ.docx',
                 url: 'https://github.com/11021983A/Docky/raw/main/ТЦ.docx'
             },
             'складской-комплекс': {
                 icon: '📦',
                 title: 'Складской комплекс',
-                description: 'Складские помещения и комплексы',
+                description: 'Складские помещения',
                 filename: 'Склад.docx',
                 url: 'https://github.com/11021983A/Docky/raw/main/Склад.docx'
             },
@@ -580,7 +436,7 @@
             'бизнес': {
                 icon: '💼',
                 title: 'Бизнес',
-                description: 'Доли в бизнесе и акции',
+                description: 'Доли и акции',
                 filename: 'Бизнес_КИ.docx',
                 url: 'https://github.com/11021983A/Docky/raw/main/Бизнес_КИ.docx'
             },
@@ -606,460 +462,159 @@
                 url: 'https://github.com/11021983A/Docky/raw/main/ИПС_жилье.docx'
             }
         };
-
-        let currentStep = 1;
+        
         let selectedAsset = null;
-        let stats = JSON.parse(localStorage.getItem('docsStats') || '{"downloads": 0, "emails": 0}');
-
-        // Инициализация приложения
-        function init() {
-            console.log('Инициализация приложения...');
+        
+        // Инициализация интерфейса
+        function initializeApp() {
+            renderAssets();
             
-            // Настройка Telegram Web App
-            if (isInTelegram) {
-                document.body.classList.add('telegram-app');
-                
-                // Настраиваем тему
-                tg.ready();
-                tg.expand();
-                
-                // Настройка главной кнопки
-                tg.MainButton.setText('ПРОДОЛЖИТЬ');
-                tg.MainButton.hide();
-                
-                console.log('Telegram Web App инициализирован');
-                console.log('Пользователь:', tg.initDataUnsafe?.user);
-            }
-
-            createAssetCards();
-            updateProgress();
-            
-            // Проверяем URL параметры для прямого перехода к активу
+            // Проверяем параметры URL
             const urlParams = new URLSearchParams(window.location.search);
-            const preselectedAsset = urlParams.get('asset');
-            if (preselectedAsset && ASSETS[preselectedAsset]) {
-                // Автоматически выбираем актив
-                setTimeout(() => {
-                    const card = document.querySelector(`[data-asset="${preselectedAsset}"]`);
-                    if (card) {
-                        selectAsset(preselectedAsset, card);
-                    }
-                }, 500);
+            const assetParam = urlParams.get('asset');
+            if (assetParam && assets[assetParam]) {
+                selectAsset(assetParam);
             }
         }
-
-        // Создание карточек активов (ТОЛЬКО нужная информация)
-        function createAssetCards() {
-            const grid = document.getElementById('assetGrid');
+        
+        // Отрисовка активов
+        function renderAssets() {
+            const grid = document.getElementById('assetsGrid');
             grid.innerHTML = '';
-
-            Object.entries(ASSETS).forEach(([key, asset]) => {
+            
+            Object.entries(assets).forEach(([key, asset]) => {
                 const card = document.createElement('div');
                 card.className = 'asset-card';
-                card.setAttribute('data-asset', key);
-                card.onclick = () => selectAsset(key, card);
-                
-                // ВНИМАНИЕ: НИКАКИХ documents и processing!
+                card.onclick = () => selectAsset(key);
                 card.innerHTML = `
                     <div class="asset-icon">${asset.icon}</div>
                     <div class="asset-title">${asset.title}</div>
-                    <div class="asset-description">${asset.description}</div>
                 `;
-                
                 grid.appendChild(card);
             });
         }
-
-        // Выбор актива - сразу переходим к действиям
-        function selectAsset(assetKey, cardElement) {
+        
+        // Выбор актива
+        function selectAsset(assetKey) {
             selectedAsset = assetKey;
+            const asset = assets[assetKey];
             
-            // Сразу переходим к шагу 2 без кнопки "Продолжить"
-            currentStep = 2;
-            showStep(currentStep);
-            showSelectedAssetInfo();
-
-            // Haptic feedback для Telegram
-            if (isInTelegram && tg.HapticFeedback) {
-                tg.HapticFeedback.selectionChanged();
-            }
-        }
-
-        // Переход к следующему шагу
-        function nextStep() {
-            if (currentStep < 3) {
-                currentStep++;
-                showStep(currentStep);
-                
-                if (currentStep === 2) {
-                    showSelectedAssetInfo();
-                    
-                    // Настройка Telegram кнопки
-                    if (isInTelegram) {
-                        tg.MainButton.hide();
-                    }
+            // Обновляем выделение
+            document.querySelectorAll('.asset-card').forEach((card, index) => {
+                const currentKey = Object.keys(assets)[index];
+                if (currentKey === assetKey) {
+                    card.classList.add('selected');
+                } else {
+                    card.classList.remove('selected');
                 }
-            }
-
-            // Haptic feedback
-            if (isInTelegram && tg.HapticFeedback) {
-                tg.HapticFeedback.impactOccurred('light');
-            }
-        }
-
-        // Возврат к предыдущему шагу
-        function goBack() {
-            if (currentStep > 1) {
-                currentStep--;
-                showStep(currentStep);
-                hideEmailForm();
-                
-                if (currentStep === 1 && isInTelegram) {
-                    if (selectedAsset) {
-                        tg.MainButton.show();
-                    } else {
-                        tg.MainButton.hide();
-                    }
-                }
-            }
-        }
-
-        // Показ конкретного шага
-        function showStep(step) {
-            document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
-            document.getElementById(`step${step}`).classList.add('active');
-            
-            document.querySelectorAll('.step-dot').forEach((dot, index) => {
-                dot.classList.toggle('active', index < step);
             });
             
-            updateProgress();
-        }
-
-        // Обновление прогресс-бара
-        function updateProgress() {
-            const progress = ((currentStep - 1) / 2) * 100;
-            document.getElementById('progressFill').style.width = `${progress}%`;
-        }
-
-        // Показ информации о выбранном активе (упрощенная версия)
-        function showSelectedAssetInfo() {
-            const asset = ASSETS[selectedAsset];
-            const infoDiv = document.getElementById('selectedAssetInfo');
+            // Показываем детали
+            document.getElementById('detailIcon').textContent = asset.icon;
+            document.getElementById('detailTitle').textContent = asset.title;
+            document.getElementById('detailDescription').textContent = asset.description;
+            document.getElementById('detailFilename').textContent = asset.filename;
             
-            // ВНИМАНИЕ: ТОЛЬКО основная информация!
-            infoDiv.innerHTML = `
-                <div class="info-box">
-                    <h3>${asset.icon} ${asset.title}</h3>
-                    <p>${asset.description}</p>
-                    <p><strong>Файл:</strong> ${asset.filename}</p>
-                </div>
-            `;
+            const details = document.getElementById('assetDetails');
+            details.classList.add('active');
+            
+            // Прокручиваем к деталям
+            setTimeout(() => {
+                details.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 100);
         }
-
-        // Прямое скачивание документа (исправленная версия)
-        function downloadDocumentDirect() {
-            const asset = ASSETS[selectedAsset];
+        
+        // Скачивание документа
+        function downloadDocument() {
+            if (!selectedAsset) return;
             
-            // Используем правильную прямую ссылку GitHub для скачивания
-            const downloadUrl = asset.url;
+            const asset = assets[selectedAsset];
             
-            // Принудительно открываем ссылку - GitHub автоматически начнет скачивание DOCX
+            // Создаем ссылку для скачивания
             const link = document.createElement('a');
-            link.href = downloadUrl;
+            link.href = asset.url;
+            link.download = asset.filename;
             link.target = '_blank';
-            link.rel = 'noopener noreferrer';
-            
-            // Для мобильных устройств добавляем download атрибут
-            if (/Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
-                link.download = asset.filename;
-            }
-            
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
             
-            // Обновляем статистику
-            stats.downloads++;
-            saveStats();
+            // Отправляем данные в бота
+            tg.sendData(JSON.stringify({
+                action: 'download_completed',
+                asset_type: selectedAsset
+            }));
             
-            // Уведомляем Telegram
-            if (isInTelegram) {
-                tg.sendData(JSON.stringify({
-                    action: 'download_completed',
-                    asset_type: selectedAsset,
-                    timestamp: new Date().toISOString()
-                }));
-                
-                if (tg.HapticFeedback) {
-                    tg.HapticFeedback.notificationOccurred('success');
-                }
-            }
-            
-            // Показываем результат
-            showResult('download');
+            showNotification('Документ загружается...', 'success');
         }
-
-        // Показ формы email
-        function showEmailForm() {
-            document.getElementById('emailForm').classList.remove('hidden');
+        
+        // Открытие модального окна email
+        function sendToEmail() {
+            if (!selectedAsset) return;
             
-            // Автозаполнение email из Telegram если доступно
-            if (isInTelegram && tg.initDataUnsafe?.user?.email) {
-                document.getElementById('emailInput').value = tg.initDataUnsafe.user.email;
-            }
+            document.getElementById('emailModal').classList.add('active');
+            document.getElementById('emailInput').focus();
         }
-
-        // Скрытие формы email
-        function hideEmailForm() {
-            document.getElementById('emailForm').classList.add('hidden');
+        
+        // Закрытие модального окна
+        function closeEmailModal() {
+            document.getElementById('emailModal').classList.remove('active');
             document.getElementById('emailInput').value = '';
         }
-
-        // Отправка email через Telegram бота
-        async function sendEmailViaTelegram() {
-            const emailInput = document.getElementById('emailInput');
-            const email = emailInput.value.trim();
+        
+        // Отправка на email
+        function confirmSendEmail() {
+            const email = document.getElementById('emailInput').value.trim();
             
-            if (!email || !validateEmail(email)) {
-                // Используем Telegram popup если доступен
-                if (isInTelegram) {
-                    tg.showPopup({
-                        title: 'Ошибка',
-                        message: 'Пожалуйста, введите корректный email адрес',
-                        buttons: [{type: 'ok'}]
-                    });
-                } else {
-                    alert('Пожалуйста, введите корректный email адрес');
-                }
+            if (!email) {
+                showNotification('Введите email адрес', 'error');
                 return;
             }
             
-            // Показываем индикатор загрузки
-            const sendBtn = document.getElementById('sendBtnText');
-            const loading = document.getElementById('sendLoading');
-            sendBtn.classList.add('hidden');
-            loading.classList.remove('hidden');
-            
-            try {
-                if (isInTelegram) {
-                    // Отправляем данные в Telegram бота
-                    const data = {
-                        action: 'send_email',
-                        email: email,
-                        asset_type: selectedAsset,
-                        timestamp: new Date().toISOString()
-                    };
-                    
-                    tg.sendData(JSON.stringify(data));
-                    
-                    // Haptic feedback
-                    if (tg.HapticFeedback) {
-                        tg.HapticFeedback.impactOccurred('medium');
-                    }
-                    
-                    // Показываем успех (бот ответит отдельным сообщением)
-                    showResult('email_requested', email);
-                } else {
-                    // Fallback для обычного браузера
-                    await simulateEmailSending(email);
-                    showResult('email', email);
-                }
-                
-                // Обновляем статистику
-                stats.emails++;
-                saveStats();
-                
-            } catch (error) {
-                console.error('Ошибка отправки:', error);
-                showResult('error');
-                
-                if (isInTelegram && tg.HapticFeedback) {
-                    tg.HapticFeedback.notificationOccurred('error');
-                }
-            } finally {
-                // Скрываем индикатор загрузки
-                sendBtn.classList.remove('hidden');
-                loading.classList.add('hidden');
+            if (!validateEmail(email)) {
+                showNotification('Неверный формат email', 'error');
+                return;
             }
+            
+            // Отправляем данные в бота
+            tg.sendData(JSON.stringify({
+                action: 'send_email',
+                asset_type: selectedAsset,
+                email: email
+            }));
+            
+            closeEmailModal();
+            showNotification('Отправка на email...', 'success');
         }
-
-        // Имитация отправки email (для обычного браузера)
-        function simulateEmailSending(email) {
-            return new Promise((resolve, reject) => {
-                setTimeout(() => {
-                    if (Math.random() > 0.1) {
-                        resolve();
-                    } else {
-                        reject(new Error('Network error'));
-                    }
-                }, 2000);
-            });
-        }
-
+        
         // Валидация email
         function validateEmail(email) {
             const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
             return re.test(email);
         }
-
-        // Показ результата
-        function showResult(type, email = '') {
-            currentStep = 3;
-            showStep(3);
+        
+        // Показ уведомления
+        function showNotification(message, type) {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.className = `notification ${type} active`;
             
-            const resultDiv = document.getElementById('resultMessage');
-            const asset = ASSETS[selectedAsset];
-            
-            if (type === 'download') {
-                resultDiv.innerHTML = `
-                    <div class="success-box">
-                        <h3>✅ Документ открыт для скачивания!</h3>
-                        <p><strong>Актив:</strong> ${asset.title}</p>
-                        <p><strong>Файл:</strong> ${asset.filename} (DOCX)</p>
-                        <p><strong>📥 Скачивание началось автоматически</strong></p>
-                        <p><small>💡 Если файл не скачался, проверьте блокировку всплывающих окон в браузере</small></p>
-                        ${isInTelegram ? '<p><small>📱 Telegram бот уведомлен о скачивании</small></p>' : ''}
-                    </div>
-                `;
-            } else if (type === 'email_requested') {
-                resultDiv.innerHTML = `
-                    <div class="success-box">
-                        <h3>📤 Запрос отправлен боту!</h3>
-                        <p><strong>Email:</strong> ${email}</p>
-                        <p><strong>Актив:</strong> ${asset.title}</p>
-                        <p>🤖 Telegram бот обрабатывает ваш запрос...</p>
-                        <p>📧 Документ будет отправлен в течение минуты!</p>
-                        <p>💬 Вы получите уведомление в чате</p>
-                    </div>
-                `;
-            } else if (type === 'email') {
-                resultDiv.innerHTML = `
-                    <div class="success-box">
-                        <h3>✅ Email отправлен!</h3>
-                        <p><strong>Получатель:</strong> ${email}</p>
-                        <p><strong>Актив:</strong> ${asset.title}</p>
-                        <p>Проверьте входящие письма (и папку "Спам").</p>
-                        <p>Письмо должно прийти в течение 5 минут.</p>
-                    </div>
-                `;
-            } else if (type === 'error') {
-                resultDiv.innerHTML = `
-                    <div class="error-box">
-                        <h3>❌ Ошибка отправки</h3>
-                        <p>Не удалось отправить email. Возможные причины:</p>
-                        <ul>
-                            <li>Проблемы с интернет-соединением</li>
-                            <li>Неверный email адрес</li>
-                            <li>Временные проблемы сервера</li>
-                        </ul>
-                        <p>Попробуйте скачать документ напрямую.</p>
-                    </div>
-                `;
-            }
-            
-            // Настройка Telegram кнопок
-            if (isInTelegram) {
-                tg.MainButton.hide();
-                
-                // Добавляем кнопку "Закрыть" если это последний шаг
-                tg.BackButton.show();
-                tg.BackButton.onClick(() => {
-                    tg.close();
-                });
-            }
+            setTimeout(() => {
+                notification.classList.remove('active');
+            }, 3000);
         }
-
-        // Перезапуск приложения
-        function restart() {
-            currentStep = 1;
-            selectedAsset = null;
-            showStep(1);
-            hideEmailForm();
-            
-            // Настройка Telegram кнопок
-            if (isInTelegram) {
-                tg.MainButton.hide();
-                tg.BackButton.hide();
-            }
-
-            // Haptic feedback
-            if (isInTelegram && tg.HapticFeedback) {
-                tg.HapticFeedback.impactOccurred('light');
-            }
-        }
-
-        // Сохранение статистики
-        function saveStats() {
-            localStorage.setItem('docsStats', JSON.stringify(stats));
-        }
-
-        // Функция для отправки помощи в Telegram
-        function requestHelp() {
-            if (isInTelegram) {
-                tg.sendData(JSON.stringify({
-                    action: 'need_help',
-                    current_step: currentStep,
-                    selected_asset: selectedAsset,
-                    timestamp: new Date().toISOString()
-                }));
-                
-                tg.showPopup({
-                    title: '🆘 Помощь',
-                    message: 'Запрос на помощь отправлен! Наши специалисты свяжутся с вами в чате.',
-                    buttons: [{type: 'ok'}]
-                });
-            }
-        }
-
-        // Инициализация при загрузке страницы
-        document.addEventListener('DOMContentLoaded', init);
-
-        // Обработка событий Telegram Web App
-        if (isInTelegram) {
-            // Обработка кнопки "Назад" в Telegram
-            tg.onEvent('backButtonClicked', () => {
-                if (currentStep > 1) {
-                    goBack();
-                } else {
-                    tg.close();
+        
+        // Обработка Enter в поле email
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('emailInput').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    confirmSendEmail();
                 }
             });
-            
-            // Обработка события закрытия
-            tg.onEvent('viewportChanged', () => {
-                console.log('Viewport изменился:', tg.viewportHeight);
-            });
-            
-            // Настройка цветовой схемы
-            if (tg.colorScheme === 'dark') {
-                document.body.classList.add('dark-theme');
-            }
-            
-            // Отправка события "готов к работе"
-            tg.ready();
-            
-            console.log('Telegram Web App события настроены');
-        }
-
-        // Дополнительные функции для отладки
-        window.debugTelegram = function() {
-            if (isInTelegram) {
-                console.log('=== Telegram Web App Debug ===');
-                console.log('isInTelegram:', isInTelegram);
-                console.log('tg.initData:', tg.initData);
-                console.log('tg.initDataUnsafe:', tg.initDataUnsafe);
-                console.log('tg.version:', tg.version);
-                console.log('tg.platform:', tg.platform);
-                console.log('tg.colorScheme:', tg.colorScheme);
-                console.log('tg.themeParams:', tg.themeParams);
-                console.log('tg.isExpanded:', tg.isExpanded);
-                console.log('tg.viewportHeight:', tg.viewportHeight);
-                console.log('tg.viewportStableHeight:', tg.viewportStableHeight);
-            } else {
-                console.log('Не в Telegram Web App');
-            }
-        };
+        });
+        
+        // Инициализация при загрузке
+        initializeApp();
     </script>
 </body>
 </html>
