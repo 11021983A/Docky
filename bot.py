@@ -1,11 +1,4 @@
-# Получаем настройки
-BOT_TOKEN = os.getenv('BOT_TOKEN', '8222086470:AAGCqPq0T7hFU0E0Mf7yoP39Wtc-OPqI_qA')
-WEBAPP_URL = os.getenv('WEBAPP_URL', 'https://11021983a.github.io/docs-bank-webapp/')
-SMTP_SERVER = os.getenv('SMTP_SERVER', 'smtp.mail.ru')
-SMTP_PORT = int(os.getenv('SMTP_PORT', '587'))
-EMAIL_USER = os.getenv('EMAIL_USER', 'docs_zs@mail.ru')
-EMAIL_PASSWORD = os.getenv('EMAIL_PASSWORD')
-ADMIN_CHAT_ID = os.getenv('ADMIN_CHAT_ID')import os
+import os
 import telebot
 from telebot import types
 from dotenv import load_dotenv
@@ -37,16 +30,22 @@ logger = logging.getLogger(__name__)
 
 # Получаем настройки
 BOT_TOKEN = os.getenv('BOT_TOKEN')
-WEBAPP_URL = os.getenv('WEBAPP_URL', 'https://yourusername.github.io/docs-bank-app/')
+WEBAPP_URL = os.getenv('WEBAPP_URL', 'https://11021983a.github.io/Docky/')
 SMTP_SERVER = os.getenv('SMTP_SERVER', 'smtp.mail.ru')
 SMTP_PORT = int(os.getenv('SMTP_PORT', '587'))
 EMAIL_USER = os.getenv('EMAIL_USER', 'docs_zs@mail.ru')
 EMAIL_PASSWORD = os.getenv('EMAIL_PASSWORD')
 ADMIN_CHAT_ID = os.getenv('ADMIN_CHAT_ID')
 
+# Проверяем обязательные параметры
 if not BOT_TOKEN:
     print("❌ ОШИБКА: Не найден BOT_TOKEN в файле .env")
+    print("💡 Добавьте в Environment Variables: BOT_TOKEN")
     exit()
+
+if not EMAIL_PASSWORD:
+    print("⚠️ ПРЕДУПРЕЖДЕНИЕ: Не найден EMAIL_PASSWORD")
+    print("💡 Добавьте пароль приложения Mail.ru в Environment Variables")
 
 # Создаем бота
 bot = telebot.TeleBot(BOT_TOKEN)
@@ -54,71 +53,63 @@ bot = telebot.TeleBot(BOT_TOKEN)
 # Хранилище для пользователей (в памяти для простоты)
 user_sessions = {}
 
-# Данные об активах (синхронизировано с веб-приложением)
+# Данные об активах (только необходимая информация)
 ASSETS = {
     'бизнес-центр': {
         'icon': '🏢',
         'title': 'Бизнес-центр',
         'description': 'Офисные здания и бизнес-центры',
-        'documents': 15,
-        'processing': '7-10 дней',
-        'filename': 'бизнес-центр.pdf'
+        'filename': 'БЦ.docx',
+        'url': 'https://github.com/11021983A/Docky/raw/main/БЦ.docx'
     },
     'торговый-центр': {
         'icon': '🛍️',
         'title': 'Торговый центр',
         'description': 'Торговые центры и комплексы',
-        'documents': 18,
-        'processing': '10-14 дней',
-        'filename': 'торговый-центр.pdf'
+        'filename': 'ТЦ.docx',
+        'url': 'https://github.com/11021983A/Docky/raw/main/ТЦ.docx'
     },
     'складской-комплекс': {
         'icon': '📦',
         'title': 'Складской комплекс',
         'description': 'Складские помещения и комплексы',
-        'documents': 12,
-        'processing': '5-7 дней',
-        'filename': 'складской-комплекс.pdf'
+        'filename': 'Склад.docx',
+        'url': 'https://github.com/11021983A/Docky/raw/main/Склад.docx'
     },
     'гостиница': {
         'icon': '🏨',
         'title': 'Гостиница',
         'description': 'Гостиничные комплексы',
-        'documents': 20,
-        'processing': '14-21 день',
-        'filename': 'гостиница.pdf'
+        'filename': 'Гостиница.docx',
+        'url': 'https://github.com/11021983A/Docky/raw/main/Гостиница.docx'
     },
     'бизнес': {
         'icon': '💼',
         'title': 'Бизнес',
         'description': 'Доли в бизнесе и акции',
-        'documents': 25,
-        'processing': '21-30 дней',
-        'filename': 'бизнес.pdf'
+        'filename': 'Бизнес_КИ.docx',
+        'url': 'https://github.com/11021983A/Docky/raw/main/Бизнес_КИ.docx'
     },
     'комплекс-имущества': {
         'icon': '🏗️',
         'title': 'Комплекс имущества',
         'description': 'Имущественные комплексы',
-        'documents': 22,
-        'processing': '14-21 день',
-        'filename': 'комплекс-имущества.pdf'
+        'filename': 'Бизнес_КИ.docx',
+        'url': 'https://github.com/11021983A/Docky/raw/main/Бизнес_КИ.docx'
     },
     'машины-и-оборудование': {
         'icon': '⚙️',
         'title': 'Машины и оборудование',
         'description': 'Промышленное оборудование',
-        'documents': 16,
-        'processing': '7-14 дней',
-        'filename': 'машины-и-оборудование.pdf'
+        'filename': 'МиО.docx',
+        'url': 'https://github.com/11021983A/Docky/raw/main/МиО.docx'
     },
     'имущественные-права-на-жилье': {
         'icon': '🏠',
         'title': 'ИПС на жилье',
         'description': 'Права на жилую недвижимость',
-        'documents': 14,
-        'processing': '10-14 дней',
-        'filename': 'имущественные-права-на-жилье.pdf'
+        'filename': 'ИПС_жилье.docx',
+        'url': 'https://github.com/11021983A/Docky/raw/main/ИПС_жилье.docx'
     }
 }
 
@@ -172,8 +163,7 @@ def send_email_with_document(recipient_email: str, asset_type: str, user_name: s
                     <h4>Информация об активе:</h4>
                     <ul>
                         <li><strong>Тип:</strong> {asset['description']}</li>
-                        <li><strong>Количество документов:</strong> {asset['documents']}</li>
-                        <li><strong>Время обработки:</strong> {asset['processing']}</li>
+                        <li><strong>Файл:</strong> {asset['filename']}</li>
                     </ul>
                 </div>
                 
@@ -237,11 +227,12 @@ def start_command(message):
     """Стартовое сообщение с Web App"""
     user_id = message.from_user.id
     user_name = message.from_user.first_name
+    username = message.from_user.username
     
     # Инициализируем сессию пользователя
     user_sessions[user_id] = {
         'name': user_name,
-        'username': message.from_user.username,
+        'username': username,
         'started_at': datetime.now()
     }
     
@@ -304,7 +295,6 @@ def help_command(message):
 • `/start` - Открыть каталог
 • `/help` - Эта справка
 • `/contacts` - Контактная информация
-• `/email [адрес]` - Быстрая отправка на email
 
 **Веб-приложение:** {WEBAPP_URL}
 
@@ -360,111 +350,6 @@ def contacts_command(message):
         reply_markup=keyboard,
         parse_mode='Markdown'
     )
-
-@bot.message_handler(commands=['email'])
-def quick_email_command(message):
-    """Быстрая команда для отправки на email"""
-    try:
-        # Парсим команду /email user@example.com актив
-        parts = message.text.split()
-        
-        if len(parts) < 2:
-            bot.reply_to(
-                message, 
-                "📧 Использование: `/email ваш@email.ru актив`\n\n"
-                "Пример: `/email ivan@mail.ru бизнес-центр`\n\n"
-                "Или откройте веб-каталог для удобного выбора ⬇️"
-            )
-            
-            keyboard = types.InlineKeyboardMarkup()
-            webapp_btn = types.InlineKeyboardButton(
-                "📋 Открыть каталог", 
-                web_app=types.WebAppInfo(url=WEBAPP_URL)
-            )
-            keyboard.add(webapp_btn)
-            
-            bot.send_message(
-                message.chat.id,
-                "📱 Рекомендуем использовать веб-каталог:",
-                reply_markup=keyboard
-            )
-            return
-        
-        email = parts[1]
-        asset_query = ' '.join(parts[2:]) if len(parts) > 2 else ''
-        
-        if not validate_email(email):
-            bot.reply_to(message, "❌ Неверный формат email адреса")
-            return
-        
-        # Если указан актив, ищем его
-        if asset_query:
-            found_asset = None
-            asset_query = asset_query.lower()
-            
-            for asset_key, asset_data in ASSETS.items():
-                if (asset_query in asset_key.lower() or 
-                    asset_query in asset_data['title'].lower()):
-                    found_asset = asset_key
-                    break
-            
-            if found_asset:
-                # Отправляем документ
-                user_name = message.from_user.first_name
-                success = send_email_with_document(email, found_asset, user_name)
-                
-                if success:
-                    asset = ASSETS[found_asset]
-                    success_text = f"""
-✅ **Документы отправлены!**
-
-📧 **Email:** `{email}`
-📄 **Актив:** {asset['icon']} {asset['title']}
-
-📬 Проверьте входящие письма в течение 5 минут.
-"""
-                    bot.reply_to(message, success_text, parse_mode='Markdown')
-                    
-                    # Логируем для админа
-                    if ADMIN_CHAT_ID:
-                        admin_msg = f"📧 Документы отправлены\n👤 {user_name}\n📄 {asset['title']}\n📧 {email}"
-                        try:
-                            bot.send_message(ADMIN_CHAT_ID, admin_msg)
-                        except:
-                            pass
-                else:
-                    bot.reply_to(
-                        message, 
-                        "❌ Ошибка отправки email. Попробуйте позже или используйте веб-каталог."
-                    )
-            else:
-                # Актив не найден, показываем список
-                assets_list = '\n'.join([f"• {data['title']}" for data in ASSETS.values()])
-                bot.reply_to(
-                    message,
-                    f"❓ Актив '{asset_query}' не найден.\n\n"
-                    f"**Доступные активы:**\n{assets_list}\n\n"
-                    "Или откройте веб-каталог для удобного выбора:"
-                )
-        else:
-            # Актив не указан, показываем веб-каталог
-            keyboard = types.InlineKeyboardMarkup()
-            webapp_btn = types.InlineKeyboardButton(
-                "📋 Выбрать в каталоге", 
-                web_app=types.WebAppInfo(url=WEBAPP_URL)
-            )
-            keyboard.add(webapp_btn)
-            
-            bot.reply_to(
-                message,
-                f"📧 Email `{email}` сохранен.\n\nВыберите актив в веб-каталоге:",
-                reply_markup=keyboard,
-                parse_mode='Markdown'
-            )
-            
-    except Exception as e:
-        logger.error(f"Ошибка в quick_email_command: {e}")
-        bot.reply_to(message, "❌ Произошла ошибка. Попробуйте использовать веб-каталог.")
 
 @bot.callback_query_handler(func=lambda call: True)
 def handle_callback_query(call):
@@ -587,34 +472,6 @@ def handle_web_app_data(message):
                     parse_mode='Markdown',
                     reply_markup=keyboard
                 )
-                
-        elif action == 'need_help':
-            # Пользователь запросил помощь из веб-приложения
-            help_text = """
-🆘 **Нужна помощь?**
-
-📞 **Свяжитесь с нами:**
-📧 Email: docs_zs@mail.ru
-📱 WhatsApp: +7 (XXX) XXX-XX-XX
-
-⏰ **Время работы:** Пн-Пт 9:00-18:00
-
-💬 **Или опишите вашу проблему здесь** - наши специалисты ответят в ближайшее время!
-"""
-            
-            keyboard = types.InlineKeyboardMarkup()
-            email_btn = types.InlineKeyboardButton(
-                "📧 Написать на почту", 
-                url=f"mailto:{EMAIL_USER}?subject=Помощь с документами"
-            )
-            keyboard.add(email_btn)
-            
-            bot.reply_to(
-                message, 
-                help_text, 
-                parse_mode='Markdown',
-                reply_markup=keyboard
-            )
         
     except Exception as e:
         logger.error(f"Ошибка обработки Web App данных: {e}")
@@ -641,8 +498,6 @@ def handle_text_messages(message):
 {asset_data['icon']} **{asset_data['title']}**
 
 📝 {asset_data['description']}
-📄 Документов: {asset_data['documents']}
-⏱️ Время обработки: {asset_data['processing']}
 
 🎯 **Что хотите сделать?**
 """
@@ -741,7 +596,7 @@ def main():
     print(f"🔧 Функции:")
     print("   ✅ Telegram Web App интеграция")
     print("   ✅ Отправка email через Mail.ru")
-    print("   ✅ Автоматическое прикрепление PDF")
+    print("   ✅ Автоматическое прикрепление документов")
     print("   ✅ Поиск активов по ключевым словам")
     print("   ✅ Обработка данных от веб-приложения")
     print("=" * 50)
