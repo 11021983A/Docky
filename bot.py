@@ -5,8 +5,7 @@ SMTP_SERVER = os.getenv('SMTP_SERVER', 'smtp.mail.ru')
 SMTP_PORT = int(os.getenv('SMTP_PORT', '587'))
 EMAIL_USER = os.getenv('EMAIL_USER', 'docs_zs@mail.ru')
 EMAIL_PASSWORD = os.getenv('EMAIL_PASSWORD')
-ADMIN_CHAT_ID = os.getenv('ADMIN_CHAT_ID')
-import os
+ADMIN_CHAT_ID = os.getenv('ADMIN_CHAT_ID')import os
 import telebot
 from telebot import types
 from dotenv import load_dotenv
