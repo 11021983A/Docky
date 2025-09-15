@@ -593,9 +593,11 @@ def main():
     print("=" * 50)
     print(f"📱 Web App: {WEBAPP_URL}")
     print(f"📧 Email: {EMAIL_USER}")
+    print(f"🌐 Health Check: http://localhost:{os.environ.get('PORT', 10000)}")
     print(f"🔧 Функции:")
     print("   ✅ Telegram Web App интеграция")
     print("   ✅ Отправка email через Mail.ru")
+    print("   ✅ HTTP Health Check для Render")
     print("   ✅ Автоматическое прикрепление документов")
     print("   ✅ Поиск активов по ключевым словам")
     print("   ✅ Обработка данных от веб-приложения")
@@ -606,7 +608,14 @@ def main():
         bot_info = bot.get_me()
         print(f"✅ Подключение к Telegram: @{bot_info.username}")
         
+        # Запускаем Flask сервер в отдельном потоке
+        flask_thread = Thread(target=run_flask)
+        flask_thread.daemon = True
+        flask_thread.start()
+        logger.info(f"🌐 HTTP сервер запущен на порту {os.environ.get('PORT', 10000)}")
+        
         # Запускаем бота
+        logger.info("🤖 Telegram бот запущен и готов к работе")
         bot.polling(none_stop=True, timeout=60)
         
     except Exception as e:
