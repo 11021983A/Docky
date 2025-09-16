@@ -15,6 +15,11 @@ import re
 from datetime import datetime
 from threading import Thread
 from flask import Flask, jsonify
+import time
+import uuid
+
+# Уникальный ID процесса
+PROCESS_ID = str(uuid.uuid4())[:8]
 
 # Загружаем переменные из .env файла
 load_dotenv()
@@ -22,13 +27,16 @@ load_dotenv()
 # Настройка логирования с более детальным выводом
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    level=logging.DEBUG,  # Изменено на DEBUG для более подробных логов
+    level=logging.INFO,  # Изменено обратно на INFO
     handlers=[
         logging.FileHandler('bot.log'),
         logging.StreamHandler()
     ]
 )
 logger = logging.getLogger(__name__)
+
+# Отключаем debug для urllib3, чтобы не показывать токен
+logging.getLogger('urllib3').setLevel(logging.WARNING)
 
 # Получаем настройки
 BOT_TOKEN = os.getenv('BOT_TOKEN')
@@ -639,13 +647,13 @@ def handle_text_messages(message):
 
 def main():
     """Основная функция запуска бота"""
-    logger.info("🚀 Запуск Telegram Web App бота 'Доки'")
+    logger.info(f"🚀 Запуск Telegram Web App бота 'Доки' [Process: {PROCESS_ID}]")
     logger.info(f"📱 Web App URL: {WEBAPP_URL}")
     logger.info(f"📧 Email: {'✅ Настроен' if EMAIL_USER and EMAIL_PASSWORD else '❌ Не настроен'}")
     logger.info(f"👮 Админ: {'✅ Настроен' if ADMIN_CHAT_ID else '❌ Не настроен'}")
     
     print("=" * 50)
-    print("🤖 TELEGRAM WEB APP БОТ 'ДОКИ' ЗАПУЩЕН")
+    print(f"🤖 TELEGRAM WEB APP БОТ 'ДОКИ' ЗАПУЩЕН [{PROCESS_ID}]")
     print("=" * 50)
     print(f"📱 Web App: {WEBAPP_URL}")
     print(f"📧 Email: {EMAIL_USER}")
@@ -664,11 +672,18 @@ def main():
     try:
         bot.remove_webhook()
         bot.delete_webhook()
-        # Пропускаем накопившиеся обновления
-        bot.get_updates(offset=-1)
+        # Очищаем все накопившиеся обновления
+        updates = bot.get_updates()
+        if updates:
+            last_update_id = updates[-1].update_id
+            bot.get_updates(offset=last_update_id + 1)
         logger.info("✅ Webhook очищен, старые обновления пропущены")
     except Exception as e:
         logger.warning(f"Предупреждение при очистке webhook: {e}")
+    
+    # Ждем немного перед запуском polling
+    import time
+    time.sleep(2)
     
     try:
         # Проверяем соединение с Telegram API
