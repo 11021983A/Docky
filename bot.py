@@ -660,6 +660,16 @@ def main():
     print("   ✅ Тестовая команда /test_email")
     print("=" * 50)
     
+    # Очищаем webhook и старые обновления перед запуском
+    try:
+        bot.remove_webhook()
+        bot.delete_webhook()
+        # Пропускаем накопившиеся обновления
+        bot.get_updates(offset=-1)
+        logger.info("✅ Webhook очищен, старые обновления пропущены")
+    except Exception as e:
+        logger.warning(f"Предупреждение при очистке webhook: {e}")
+    
     try:
         # Проверяем соединение с Telegram API
         bot_info = bot.get_me()
@@ -673,7 +683,18 @@ def main():
         
         # Запускаем бота
         logger.info("🤖 Telegram бот запущен и готов к работе")
-        bot.polling(none_stop=True, timeout=60)
+        bot.polling(none_stop=True, timeout=60, skip_pending=True)
+        
+    except telebot.apihelper.ApiTelegramException as e:
+        if "Conflict" in str(e):
+            logger.error("❌ Конфликт: другой экземпляр бота уже запущен")
+            logger.error("Остановите другой процесс или подождите 30 секунд")
+            import time
+            time.sleep(30)
+            main()  # Пробуем снова через 30 секунд
+        else:
+            logger.error(f"Telegram API ошибка: {e}")
+            raise
         
     except Exception as e:
         logger.error(f"Критическая ошибка: {e}")
