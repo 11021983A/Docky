@@ -42,10 +42,11 @@ logging.getLogger('urllib3').setLevel(logging.WARNING)
 BOT_TOKEN = os.getenv('BOT_TOKEN')
 WEBAPP_URL = os.getenv('WEBAPP_URL', 'https://11021983a.github.io/Docky/')
 SMTP_SERVER = os.getenv('SMTP_SERVER', 'smtp.mail.ru')
-SMTP_PORT = int(os.getenv('SMTP_PORT', '587'))
+SMTP_PORT = int(os.getenv('SMTP_PORT', '465'))  # Изменено на 465 для SSL
 EMAIL_USER = os.getenv('EMAIL_USER', 'docs_zs@mail.ru')
 EMAIL_PASSWORD = os.getenv('EMAIL_PASSWORD')
 ADMIN_CHAT_ID = os.getenv('ADMIN_CHAT_ID')
+USE_SSL = os.getenv('USE_SSL', 'true').lower() == 'true'  # Добавлена опция SSL
 
 # Проверяем обязательные параметры
 if not BOT_TOKEN:
@@ -146,11 +147,16 @@ def validate_email(email: str) -> bool:
 
 def send_email_with_document(recipient_email: str, asset_type: str, user_name: str) -> bool:
     """Отправка email с документом через Mail.ru"""
-    if not EMAIL_USER or not EMAIL_PASSWORD:
-        logger.error("Email настройки не заданы - EMAIL_USER или EMAIL_PASSWORD отсутствуют")
+    if not EMAIL_USER:
+        logger.error("EMAIL_USER не задан")
+        return False
+    
+    if not EMAIL_PASSWORD:
+        logger.error("EMAIL_PASSWORD не задан")
         return False
     
     logger.info(f"Начинаем отправку email на {recipient_email} для актива {asset_type}")
+    logger.info(f"SMTP настройки: {SMTP_SERVER}:{SMTP_PORT}, user: {EMAIL_USER}")
     
     try:
         asset = ASSETS.get(asset_type)
@@ -221,7 +227,9 @@ def send_email_with_document(recipient_email: str, asset_type: str, user_name: s
         try:
             document_url = asset['url']
             logger.info(f"Загружаем документ с URL: {document_url}")
-            response = requests.get(document_url, timeout=30)
+            response = requests.get(document_url, timeout=30, headers={
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            })
             
             if response.status_code == 200:
                 attachment = MIMEBase('application', 'octet-stream')
@@ -232,34 +240,58 @@ def send_email_with_document(recipient_email: str, asset_type: str, user_name: s
                     f'attachment; filename="{asset["filename"]}"'
                 )
                 msg.attach(attachment)
-                logger.info(f"Документ {asset['filename']} прикреплен к письму")
+                logger.info(f"Документ {asset['filename']} прикреплен к письму, размер: {len(response.content)} байт")
             else:
                 logger.warning(f"Не удалось загрузить документ: HTTP {response.status_code}")
+                # Продолжаем отправку без вложения
                 
         except Exception as e:
             logger.error(f"Ошибка загрузки документа: {e}")
+            # Продолжаем отправку без вложения
         
         # Отправляем email
-        logger.info(f"Подключаемся к SMTP серверу {SMTP_SERVER}:{SMTP_PORT}")
-        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
-            server.set_debuglevel(1)  # Включаем debug для SMTP
-            server.starttls()
+        logger.info(f"Подключаемся к SMTP серверу {SMTP_SERVER}:{SMTP_PORT} (SSL: {USE_SSL})")
+        
+        try:
+            # Пробуем подключение через SSL (порт 465) или TLS (порт 587)
+            if USE_SSL or SMTP_PORT == 465:
+                # SSL подключение
+                logger.info("Используем SSL подключение...")
+                server = smtplib.SMTP_SSL(SMTP_SERVER, 465, timeout=30)
+                server.set_debuglevel(1)
+            else:
+                # TLS подключение
+                logger.info("Используем TLS подключение...")
+                server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT, timeout=30)
+                server.set_debuglevel(1)
+                server.starttls()
+            
+            # Аутентификация
             logger.info(f"Логинимся как {EMAIL_USER}")
             server.login(EMAIL_USER, EMAIL_PASSWORD)
+            
+            # Отправка
+            logger.info(f"Отправляем письмо на {recipient_email}")
             server.send_message(msg)
+            
+            server.quit()
+            logger.info(f"✅ Email успешно отправлен на {recipient_email}")
+            return True
+            
+        except smtplib.SMTPAuthenticationError as e:
+            logger.error(f"❌ Ошибка аутентификации SMTP: {e}")
+            logger.error("ПРОВЕРЬТЕ: EMAIL_PASSWORD должен быть паролем приложения Mail.ru, НЕ обычным паролем!")
+            logger.error("Создайте пароль приложения: Mail.ru → Настройки → Безопасность → Пароли приложений")
+        except smtplib.SMTPServerDisconnected as e:
+            logger.error(f"❌ Сервер разорвал соединение: {e}")
+            logger.error("Возможно, сервер блокирует подключение с Render")
+        except smtplib.SMTPException as e:
+            logger.error(f"❌ SMTP ошибка: {e}")
         
-        logger.info(f"Email успешно отправлен на {recipient_email}")
-        return True
+        return False
         
-    except smtplib.SMTPAuthenticationError as e:
-        logger.error(f"Ошибка аутентификации SMTP: {e}")
-        logger.error("Проверьте EMAIL_PASSWORD - нужен пароль приложения, а не пароль от почты")
-        return False
-    except smtplib.SMTPException as e:
-        logger.error(f"SMTP ошибка: {e}")
-        return False
     except Exception as e:
-        logger.error(f"Общая ошибка отправки email: {e}")
+        logger.error(f"❌ Общая ошибка отправки email: {e}")
         logger.exception("Полный traceback:")
         return False
 
