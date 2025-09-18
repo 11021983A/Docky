@@ -17,6 +17,8 @@ from threading import Thread
 from flask import Flask, jsonify
 import time
 import uuid
+import sys
+import socket
 
 # Уникальный ID процесса
 PROCESS_ID = str(uuid.uuid4())[:8]
