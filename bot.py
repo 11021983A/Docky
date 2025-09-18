@@ -75,7 +75,13 @@ def health():
 def run_flask():
     """Запуск Flask сервера для health check"""
     port = int(os.environ.get('PORT', 10000))
-    app.run(host='0.0.0.0', port=port, debug=False)
+    try:
+        app.run(host='0.0.0.0', port=port, debug=False, use_reloader=False)
+    except OSError as e:
+        if "Address already in use" in str(e):
+            logger.error(f"Порт {port} уже занят, пропускаем запуск Flask")
+        else:
+            logger.error(f"Ошибка запуска Flask: {e}")
 
 # Хранилище для пользователей (в памяти для простоты)
 user_sessions = {}
@@ -701,17 +707,31 @@ def main():
     print("=" * 50)
     
     # Очищаем webhook и старые обновления перед запуском
-    try:
-        bot.remove_webhook()
-        bot.delete_webhook()
-        # Очищаем все накопившиеся обновления
-        updates = bot.get_updates()
-        if updates:
-            last_update_id = updates[-1].update_id
-            bot.get_updates(offset=last_update_id + 1)
-        logger.info("✅ Webhook очищен, старые обновления пропущены")
-    except Exception as e:
-        logger.warning(f"Предупреждение при очистке webhook: {e}")
+    max_retries = 3
+    retry_count = 0
+    
+    while retry_count < max_retries:
+        try:
+            bot.remove_webhook()
+            bot.delete_webhook()
+            # Очищаем все накопившиеся обновления
+            updates = bot.get_updates(timeout=1)
+            if updates:
+                last_update_id = updates[-1].update_id
+                bot.get_updates(offset=last_update_id + 1, timeout=1)
+            logger.info("✅ Webhook очищен, старые обновления пропущены")
+            break
+        except telebot.apihelper.ApiTelegramException as e:
+            if "Conflict" in str(e) and retry_count < max_retries - 1:
+                retry_count += 1
+                logger.warning(f"Попытка {retry_count}/{max_retries}: ждем 10 секунд...")
+                time.sleep(10)
+            else:
+                logger.error(f"Не удалось очистить webhook после {max_retries} попыток")
+                raise
+        except Exception as e:
+            logger.warning(f"Предупреждение при очистке webhook: {e}")
+            break
     
     # Ждем немного перед запуском polling
     import time
@@ -722,11 +742,30 @@ def main():
         bot_info = bot.get_me()
         print(f"✅ Подключение к Telegram: @{bot_info.username}")
         
-        # Запускаем Flask сервер в отдельном потоке
-        flask_thread = Thread(target=run_flask)
-        flask_thread.daemon = True
-        flask_thread.start()
-        logger.info(f"🌐 HTTP сервер запущен на порту {os.environ.get('PORT', 10000)}")
+        # Запускаем Flask сервер в отдельном потоке (если порт свободен)
+        flask_started = False
+        try:
+            port = int(os.environ.get('PORT', 10000))
+            # Проверяем, свободен ли порт
+            import socket
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            result = sock.connect_ex(('127.0.0.1', port))
+            sock.close()
+            
+            if result != 0:  # Порт свободен
+                flask_thread = Thread(target=run_flask)
+                flask_thread.daemon = True
+                flask_thread.start()
+                flask_started = True
+                logger.info(f"🌐 HTTP сервер запущен на порту {port}")
+            else:
+                logger.warning(f"⚠️ Порт {port} уже занят, Flask не запущен")
+                logger.warning("Health checks могут не работать, но бот продолжит работу")
+        except Exception as e:
+            logger.warning(f"⚠️ Не удалось запустить Flask: {e}")
+        
+        # Небольшая задержка перед запуском бота
+        time.sleep(2)
         
         # Запускаем бота
         logger.info("🤖 Telegram бот запущен и готов к работе")
