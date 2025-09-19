@@ -19,6 +19,33 @@ import time
 import uuid
 import sys
 import socket
+import subprocess
+import atexit
+
+# Убиваем старые процессы при запуске
+def cleanup_old_processes():
+    try:
+        # Получаем текущий PID
+        current_pid = os.getpid()
+        # Ищем другие процессы Python
+        result = subprocess.run(['ps', 'aux'], capture_output=True, text=True)
+        for line in result.stdout.split('\n'):
+            if 'python' in line and 'bot.py' in line:
+                parts = line.split()
+                if len(parts) > 1:
+                    pid = int(parts[1])
+                    if pid != current_pid:
+                        try:
+                            os.kill(pid, 9)
+                            print(f"✅ Остановлен старый процесс {pid}")
+                        except:
+                            pass
+    except Exception as e:
+        print(f"⚠️ Не удалось очистить старые процессы: {e}")
+
+# Очищаем при запуске
+cleanup_old_processes()
+time.sleep(2)
 
 # Уникальный ID процесса
 PROCESS_ID = str(uuid.uuid4())[:8]
@@ -709,31 +736,25 @@ def main():
     print("=" * 50)
     
     # Очищаем webhook и старые обновления перед запуском
-    max_retries = 3
-    retry_count = 0
-    
-    while retry_count < max_retries:
+    try:
+        bot.remove_webhook()
+        bot.delete_webhook()
+        # Очищаем все накопившиеся обновления
         try:
-            bot.remove_webhook()
-            bot.delete_webhook()
-            # Очищаем все накопившиеся обновления
             updates = bot.get_updates(timeout=1)
             if updates:
                 last_update_id = updates[-1].update_id
                 bot.get_updates(offset=last_update_id + 1, timeout=1)
-            logger.info("✅ Webhook очищен, старые обновления пропущены")
-            break
-        except telebot.apihelper.ApiTelegramException as e:
-            if "Conflict" in str(e) and retry_count < max_retries - 1:
-                retry_count += 1
-                logger.warning(f"Попытка {retry_count}/{max_retries}: ждем 10 секунд...")
-                time.sleep(10)
-            else:
-                logger.error(f"Не удалось очистить webhook после {max_retries} попыток")
-                raise
-        except Exception as e:
-            logger.warning(f"Предупреждение при очистке webhook: {e}")
-            break
+        except:
+            pass
+        logger.info("✅ Webhook очищен, старые обновления пропущены")
+    except telebot.apihelper.ApiTelegramException as e:
+        if "Conflict" in str(e):
+            logger.error("❌ Конфликт при очистке: другой экземпляр бота запущен")
+            logger.error("Завершаем процесс для перезапуска Render")
+            sys.exit(1)
+    except Exception as e:
+        logger.warning(f"Предупреждение при очистке webhook: {e}")
     
     # Ждем немного перед запуском polling
     import time
