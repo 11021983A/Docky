@@ -23,39 +23,19 @@ import socket
 import subprocess
 import atexit
 
-# Убиваем старые процессы при запуске
+# Убиваем старые процессы при запуске (упрощенная версия)
 def cleanup_old_processes():
     try:
-        # Получаем текущий PID
-        current_pid = os.getpid()
-        print(f"📍 Текущий процесс PID: {current_pid}")
-        
-        # Убиваем все процессы Python кроме текущего
-        try:
-            result = subprocess.run(['pkill', '-9', '-f', 'python.*bot.py'], capture_output=True)
-            if result.returncode == 0:
-                print("✅ Старые процессы bot.py остановлены")
-        except:
-            pass
-            
-        # Также пробуем убить процессы по имени
-        try:
-            subprocess.run(['killall', '-9', 'python'], capture_output=True)
-        except:
-            pass
-            
-        time.sleep(3)  # Даем время процессам завершиться
-        
-    except Exception as e:
-        print(f"⚠️ Не удалось очистить старые процессы: {e}")
+        subprocess.run(['pkill', '-9', '-f', 'bot.py'], capture_output=True, stderr=subprocess.DEVNULL)
+        time.sleep(2)
+    except:
+        pass
 
 # Очищаем при запуске
-print("🧹 Очистка старых процессов...")
 cleanup_old_processes()
 
 # Уникальный ID процесса
 PROCESS_ID = str(uuid.uuid4())[:8]
-print(f"🆔 Запуск с ID: {PROCESS_ID}")
 
 # Загружаем переменные из .env файла
 load_dotenv()
