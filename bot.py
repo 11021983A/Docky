@@ -598,7 +598,40 @@ def handle_web_app_data(message):
         logger.exception("Полный traceback:")
         bot.reply_to(message, "❌ Произошла ошибка при обработке запроса")
 
-@bot.message_handler(commands=['test_email'])
+@bot.message_handler(commands=['test_send'])
+def test_send_command(message):
+    """Команда для тестовой отправки email на указанный адрес"""
+    parts = message.text.split()
+    if len(parts) < 2:
+        bot.reply_to(message, "Используйте: /test_send email@example.com")
+        return
+    
+    test_email = parts[1]
+    if not validate_email(test_email):
+        bot.reply_to(message, f"❌ Неверный формат email: {test_email}")
+        return
+    
+    # Симулируем данные от веб-приложения
+    test_data = {
+        'action': 'send_email',
+        'asset_type': 'бизнес-центр',
+        'email': test_email
+    }
+    
+    # Обрабатываем как будто пришло от веб-приложения
+    user_name = message.from_user.first_name or "Пользователь"
+    
+    logger.info(f"Тест отправки через /test_send")
+    logger.info(f"Данные: {test_data}")
+    
+    bot.reply_to(message, f"📧 Тестирую отправку на {test_email}...")
+    
+    success = send_email_with_document(test_email, 'бизнес-центр', user_name)
+    
+    if success:
+        bot.reply_to(message, f"✅ Письмо отправлено на {test_email}!")
+    else:
+        bot.reply_to(message, f"❌ Ошибка отправки на {test_email}")
 def test_email_command(message):
     """Команда для тестирования отправки email"""
     user_name = message.from_user.first_name or "Тестовый пользователь"
