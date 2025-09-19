@@ -403,7 +403,7 @@
         tg.ready();
         tg.expand();
         
-        // Данные об активах
+        // Данные об активах - ВАЖНО: ключи должны совпадать с bot.py!
         const assets = {
             'бизнес-центр': {
                 icon: '🏢',
@@ -562,7 +562,7 @@
             document.getElementById('emailInput').value = '';
         }
         
-        // Отправка на email
+        // Отправка на email с дополнительной отладкой
         function confirmSendEmail() {
             const email = document.getElementById('emailInput').value.trim();
             
@@ -576,15 +576,26 @@
                 return;
             }
             
-            // Отправляем данные в бота
-            tg.sendData(JSON.stringify({
+            if (!selectedAsset) {
+                showNotification('Сначала выберите актив', 'error');
+                return;
+            }
+            
+            // Отладка - показываем что отправляем
+            const dataToSend = {
                 action: 'send_email',
                 asset_type: selectedAsset,
                 email: email
-            }));
+            };
+            
+            console.log('Отправка данных:', dataToSend);
+            alert('Отправляем:\nАктив: ' + selectedAsset + '\nEmail: ' + email);
+            
+            // Отправляем данные в бота
+            tg.sendData(JSON.stringify(dataToSend));
             
             closeEmailModal();
-            showNotification('Отправка на email...', 'success');
+            showNotification('Данные отправлены боту', 'success');
         }
         
         // Валидация email
