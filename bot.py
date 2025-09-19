@@ -8,6 +8,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.base import MIMEBase
 from email import encoders
+import email.utils  # Добавлен импорт для корректных заголовков
 import requests
 from io import BytesIO
 import json
@@ -27,28 +28,34 @@ def cleanup_old_processes():
     try:
         # Получаем текущий PID
         current_pid = os.getpid()
-        # Ищем другие процессы Python
-        result = subprocess.run(['ps', 'aux'], capture_output=True, text=True)
-        for line in result.stdout.split('\n'):
-            if 'python' in line and 'bot.py' in line:
-                parts = line.split()
-                if len(parts) > 1:
-                    pid = int(parts[1])
-                    if pid != current_pid:
-                        try:
-                            os.kill(pid, 9)
-                            print(f"✅ Остановлен старый процесс {pid}")
-                        except:
-                            pass
+        print(f"📍 Текущий процесс PID: {current_pid}")
+        
+        # Убиваем все процессы Python кроме текущего
+        try:
+            result = subprocess.run(['pkill', '-9', '-f', 'python.*bot.py'], capture_output=True)
+            if result.returncode == 0:
+                print("✅ Старые процессы bot.py остановлены")
+        except:
+            pass
+            
+        # Также пробуем убить процессы по имени
+        try:
+            subprocess.run(['killall', '-9', 'python'], capture_output=True)
+        except:
+            pass
+            
+        time.sleep(3)  # Даем время процессам завершиться
+        
     except Exception as e:
         print(f"⚠️ Не удалось очистить старые процессы: {e}")
 
 # Очищаем при запуске
+print("🧹 Очистка старых процессов...")
 cleanup_old_processes()
-time.sleep(2)
 
 # Уникальный ID процесса
 PROCESS_ID = str(uuid.uuid4())[:8]
+print(f"🆔 Запуск с ID: {PROCESS_ID}")
 
 # Загружаем переменные из .env файла
 load_dotenv()
@@ -201,9 +208,13 @@ def send_email_with_document(recipient_email: str, asset_type: str, user_name: s
             
         # Создаем сообщение
         msg = MIMEMultipart()
-        msg['From'] = f'Доки - Банковские документы <{EMAIL_USER}>'
+        # Исправляем формат From - Mail.ru требует простой формат
+        msg['From'] = EMAIL_USER  # Просто email без дополнительного текста
         msg['To'] = recipient_email
-        msg['Subject'] = f'{asset["icon"]} Документы для {asset["title"]}'
+        msg['Subject'] = f'Документы для залога - {asset["title"]}'  # Без emoji
+        msg['Reply-To'] = EMAIL_USER  # Добавляем Reply-To для корректности
+        msg['Date'] = email.utils.formatdate(localtime=True)  # Добавляем дату
+        msg['Message-ID'] = email.utils.make_msgid()  # Добавляем Message-ID
         
         # HTML тело письма
         html_body = f"""
@@ -307,7 +318,8 @@ def send_email_with_document(recipient_email: str, asset_type: str, user_name: s
             
             # Отправка
             logger.info(f"Отправляем письмо на {recipient_email}")
-            server.send_message(msg)
+            # Используем sendmail вместо send_message для лучшей совместимости
+            server.sendmail(EMAIL_USER, [recipient_email], msg.as_string())
             
             server.quit()
             logger.info(f"✅ Email успешно отправлен на {recipient_email}")
