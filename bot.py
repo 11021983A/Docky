@@ -23,17 +23,7 @@ import socket
 import subprocess
 import atexit
 
-# Убиваем старые процессы при запуске (упрощенная версия)
-def cleanup_old_processes():
-    try:
-        subprocess.run(['pkill', '-9', '-f', 'bot.py'], capture_output=True, stderr=subprocess.DEVNULL)
-        time.sleep(2)
-    except:
-        pass
-
-# Очищаем при запуске
-cleanup_old_processes()
-
+# НЕ очищаем процессы - пусть Render сам управляет
 # Уникальный ID процесса
 PROCESS_ID = str(uuid.uuid4())[:8]
 
@@ -177,8 +167,14 @@ def send_email_with_document(recipient_email: str, asset_type: str, user_name: s
         logger.error("EMAIL_PASSWORD не задан")
         return False
     
-    logger.info(f"Начинаем отправку email на {recipient_email} для актива {asset_type}")
-    logger.info(f"SMTP настройки: {SMTP_SERVER}:{SMTP_PORT}, user: {EMAIL_USER}")
+    logger.info(f"=" * 50)
+    logger.info(f"НАЧАЛО ОТПРАВКИ EMAIL")
+    logger.info(f"Отправитель: {EMAIL_USER}")
+    logger.info(f"Получатель: {recipient_email}")
+    logger.info(f"Актив: {asset_type}")
+    logger.info(f"Пользователь: {user_name}")
+    logger.info(f"SMTP: {SMTP_SERVER}:{SMTP_PORT}")
+    logger.info(f"=" * 50)
     
     try:
         asset = ASSETS.get(asset_type)
@@ -298,8 +294,23 @@ def send_email_with_document(recipient_email: str, asset_type: str, user_name: s
             
             # Отправка
             logger.info(f"Отправляем письмо на {recipient_email}")
-            # Используем sendmail вместо send_message для лучшей совместимости
-            server.sendmail(EMAIL_USER, [recipient_email], msg.as_string())
+            logger.info(f"From: {EMAIL_USER}")
+            logger.info(f"To: {recipient_email}")
+            
+            # Пробуем разные методы отправки
+            try:
+                # Метод 1: sendmail
+                server.sendmail(EMAIL_USER, [recipient_email], msg.as_string())
+                logger.info("✅ Метод sendmail успешен")
+            except Exception as e:
+                logger.error(f"Ошибка sendmail: {e}")
+                # Метод 2: send_message
+                try:
+                    server.send_message(msg)
+                    logger.info("✅ Метод send_message успешен")
+                except Exception as e2:
+                    logger.error(f"Ошибка send_message: {e2}")
+                    raise
             
             server.quit()
             logger.info(f"✅ Email успешно отправлен на {recipient_email}")
@@ -474,6 +485,7 @@ def handle_web_app_data(message):
         user_name = message.from_user.first_name or "Пользователь"
         
         logger.info(f"Получены данные от Web App: action={action}, user={user_name}")
+        logger.info(f"Полные данные: {web_app_data}")
         
         if action == 'send_email':
             # Пользователь запросил отправку на email из веб-приложения
@@ -482,13 +494,21 @@ def handle_web_app_data(message):
             
             logger.info(f"Запрос на отправку email: {email}, актив: {asset_type}")
             
+            if not email:
+                bot.reply_to(message, "❌ Email адрес не указан")
+                return
+            
             if not validate_email(email):
-                bot.reply_to(message, "❌ Неверный формат email адреса")
+                bot.reply_to(message, f"❌ Неверный формат email адреса: {email}")
                 return
             
             if asset_type not in ASSETS:
-                bot.reply_to(message, "❌ Неизвестный тип актива")
+                bot.reply_to(message, f"❌ Неизвестный тип актива: {asset_type}")
+                logger.error(f"Актив '{asset_type}' не найден. Доступные: {list(ASSETS.keys())}")
                 return
+            
+            # Отправляем уведомление пользователю
+            bot.reply_to(message, f"📧 Отправляю документы на {email}...")
             
             # Отправляем документ
             success = send_email_with_document(email, asset_type, user_name)
@@ -497,12 +517,12 @@ def handle_web_app_data(message):
             
             if success:
                 response_text = f"""
-✅ **Документы отправлены из веб-каталога!**
+✅ **Документы отправлены!**
 
-📧 **Email:** `{email}`
+📧 **Email:** {email}
 📄 **Актив:** {asset['icon']} {asset['title']}
 
-📬 Проверьте входящие письма в течение 5 минут.
+📬 Проверьте входящие письма и папку "Спам".
 
 📄 Нужны документы для другого актива? Откройте каталог снова!
 """
@@ -514,8 +534,8 @@ def handle_web_app_data(message):
                 )
                 keyboard.add(webapp_btn)
                 
-                bot.reply_to(
-                    message, 
+                bot.send_message(
+                    message.chat.id, 
                     response_text, 
                     parse_mode='Markdown',
                     reply_markup=keyboard
@@ -523,21 +543,21 @@ def handle_web_app_data(message):
                 
                 # Логируем для админа
                 if ADMIN_CHAT_ID:
-                    admin_msg = f"📧 Email из Web App\n👤 {user_name} (@{message.from_user.username})\n📄 {asset['title']}\n📧 {email}"
+                    admin_msg = f"📧 Email отправлен\n👤 {user_name} (@{message.from_user.username})\n📄 {asset['title']}\n📧 {email}"
                     try:
                         bot.send_message(ADMIN_CHAT_ID, admin_msg)
                     except:
                         pass
             else:
-                bot.reply_to(
-                    message,
+                bot.send_message(
+                    message.chat.id,
                     f"❌ **Ошибка отправки email**\n\n"
-                    f"Не удалось отправить документы для {asset['icon']} {asset['title']} на адрес `{email}`.\n\n"
+                    f"Не удалось отправить документы для {asset['icon']} {asset['title']} на адрес {email}.\n\n"
                     f"📄 Попробуйте:\n"
                     f"• Проверить правильность email\n"
-                    f"• Повторить попытку через несколько минут\n"
+                    f"• Скачать документ и отправить вручную\n"
                     f"• Написать нам напрямую: {EMAIL_USER}\n\n"
-                    f"💡 Используйте команду /test_email для проверки",
+                    f"💡 Используйте команду /test_email для проверки системы",
                     parse_mode='Markdown'
                 )
         
@@ -588,17 +608,26 @@ def test_email_command(message):
         bot.reply_to(message, "❌ Email настройки не заданы в переменных окружения")
         return
     
-    # Отправляем тестовое письмо на email администратора
-    test_email = EMAIL_USER  # Отправляем на свой же email для теста
+    # Проверяем, есть ли email в команде
+    parts = message.text.split()
+    if len(parts) > 1:
+        test_email = parts[1]
+        if not validate_email(test_email):
+            bot.reply_to(message, f"❌ Неверный формат email: {test_email}")
+            return
+    else:
+        test_email = EMAIL_USER  # По умолчанию на свой email
+        bot.reply_to(message, "💡 Используйте: /test_email адрес@почта.ru для отправки на конкретный адрес")
     
     bot.reply_to(message, f"🔄 Отправляю тестовое письмо на {test_email}...")
     
+    # ВАЖНО: используем test_email, а не EMAIL_USER!
     success = send_email_with_document(test_email, 'бизнес-центр', user_name)
     
     if success:
-        bot.reply_to(message, "✅ Тестовое письмо успешно отправлено! Проверьте почту.")
+        bot.reply_to(message, f"✅ Тестовое письмо успешно отправлено на {test_email}!\n📬 Проверьте почту и папку Спам.")
     else:
-        bot.reply_to(message, "❌ Ошибка отправки. Проверьте логи бота для диагностики.")
+        bot.reply_to(message, f"❌ Ошибка отправки на {test_email}.\n📋 Проверьте логи для деталей.")
 
 @bot.message_handler(func=lambda message: True)
 def handle_text_messages(message):
