@@ -8,7 +8,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.base import MIMEBase
 from email import encoders
-import email.utils  # Добавлен импорт для корректных заголовков
+import email.utils
 import requests
 from io import BytesIO
 import json
@@ -23,17 +23,16 @@ import socket
 import subprocess
 import atexit
 
-# НЕ очищаем процессы - пусть Render сам управляет
 # Уникальный ID процесса
 PROCESS_ID = str(uuid.uuid4())[:8]
 
 # Загружаем переменные из .env файла
 load_dotenv()
 
-# Настройка логирования с более детальным выводом
+# Настройка логирования
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    level=logging.INFO,  # Изменено обратно на INFO
+    level=logging.INFO,
     handlers=[
         logging.FileHandler('bot.log'),
         logging.StreamHandler()
@@ -41,28 +40,28 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Отключаем debug для urllib3, чтобы не показывать токен
+# Отключаем debug для urllib3
 logging.getLogger('urllib3').setLevel(logging.WARNING)
 
 # Получаем настройки
 BOT_TOKEN = os.getenv('BOT_TOKEN')
 WEBAPP_URL = os.getenv('WEBAPP_URL', 'https://11021983a.github.io/Docky/')
 SMTP_SERVER = os.getenv('SMTP_SERVER', 'smtp.mail.ru')
-SMTP_PORT = int(os.getenv('SMTP_PORT', '465'))  # Изменено на 465 для SSL
+SMTP_PORT = int(os.getenv('SMTP_PORT', '465'))
 EMAIL_USER = os.getenv('EMAIL_USER', 'docs_zs@mail.ru')
 EMAIL_PASSWORD = os.getenv('EMAIL_PASSWORD')
 ADMIN_CHAT_ID = os.getenv('ADMIN_CHAT_ID')
-USE_SSL = os.getenv('USE_SSL', 'true').lower() == 'true'  # Добавлена опция SSL
+USE_SSL = os.getenv('USE_SSL', 'true').lower() == 'true'
 
 # Проверяем обязательные параметры
 if not BOT_TOKEN:
-    print("⌛ ОШИБКА: Не найден BOT_TOKEN в файле .env")
-    print("💡 Добавьте в Environment Variables: BOT_TOKEN")
+    print("Ошибка: Не найден BOT_TOKEN в файле .env")
+    print("Добавьте в Environment Variables: BOT_TOKEN")
     exit()
 
 if not EMAIL_PASSWORD:
-    print("⚠️ ПРЕДУПРЕЖДЕНИЕ: Не найден EMAIL_PASSWORD")
-    print("💡 Добавьте пароль приложения Mail.ru в Environment Variables")
+    print("Предупреждение: Не найден EMAIL_PASSWORD")
+    print("Добавьте пароль приложения Mail.ru в Environment Variables")
 
 # Создаем бота
 bot = telebot.TeleBot(BOT_TOKEN)
@@ -89,10 +88,10 @@ def run_flask():
         else:
             logger.error(f"Ошибка запуска Flask: {e}")
 
-# Хранилище для пользователей (в памяти для простоты)
+# Хранилище для пользователей
 user_sessions = {}
 
-# Данные об активах (только необходимая информация)
+# Данные об активах
 ASSETS = {
     'бизнес-центр': {
         'icon': '🏢',
@@ -184,13 +183,12 @@ def send_email_with_document(recipient_email: str, asset_type: str, user_name: s
             
         # Создаем сообщение
         msg = MIMEMultipart()
-        # Исправляем формат From - Mail.ru требует простой формат
-        msg['From'] = EMAIL_USER  # Просто email без дополнительного текста
+        msg['From'] = EMAIL_USER
         msg['To'] = recipient_email
-        msg['Subject'] = f'Документы для залога - {asset["title"]}'  # Без emoji
-        msg['Reply-To'] = EMAIL_USER  # Добавляем Reply-To для корректности
-        msg['Date'] = email.utils.formatdate(localtime=True)  # Добавляем дату
-        msg['Message-ID'] = email.utils.make_msgid()  # Добавляем Message-ID
+        msg['Subject'] = f'Документы для залога - {asset["title"]}'
+        msg['Reply-To'] = EMAIL_USER
+        msg['Date'] = email.utils.formatdate(localtime=True)
+        msg['Message-ID'] = email.utils.make_msgid()
         
         # HTML тело письма
         html_body = f"""
@@ -254,71 +252,59 @@ def send_email_with_document(recipient_email: str, asset_type: str, user_name: s
                 logger.info(f"Документ {asset['filename']} прикреплен к письму, размер: {len(response.content)} байт")
             else:
                 logger.warning(f"Не удалось загрузить документ: HTTP {response.status_code}")
-                # Продолжаем отправку без вложения
                 
         except Exception as e:
             logger.error(f"Ошибка загрузки документа: {e}")
-            # Продолжаем отправку без вложения
         
         # Отправляем email
         logger.info(f"Подключаемся к SMTP серверу {SMTP_SERVER}:{SMTP_PORT} (SSL: {USE_SSL})")
         
         try:
-            # Пробуем подключение через SSL (порт 465) или TLS (порт 587)
             if USE_SSL or SMTP_PORT == 465:
-                # SSL подключение
                 logger.info("Используем SSL подключение...")
                 server = smtplib.SMTP_SSL(SMTP_SERVER, 465, timeout=30)
                 server.set_debuglevel(1)
             else:
-                # TLS подключение
                 logger.info("Используем TLS подключение...")
                 server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT, timeout=30)
                 server.set_debuglevel(1)
                 server.starttls()
             
-            # Аутентификация
             logger.info(f"Логинимся как {EMAIL_USER}")
             server.login(EMAIL_USER, EMAIL_PASSWORD)
             
-            # Отправка
             logger.info(f"Отправляем письмо на {recipient_email}")
             logger.info(f"From: {EMAIL_USER}")
             logger.info(f"To: {recipient_email}")
             
-            # Пробуем разные методы отправки
             try:
-                # Метод 1: sendmail
                 server.sendmail(EMAIL_USER, [recipient_email], msg.as_string())
-                logger.info("✅ Метод sendmail успешен")
+                logger.info("Метод sendmail успешен")
             except Exception as e:
                 logger.error(f"Ошибка sendmail: {e}")
-                # Метод 2: send_message
                 try:
                     server.send_message(msg)
-                    logger.info("✅ Метод send_message успешен")
+                    logger.info("Метод send_message успешен")
                 except Exception as e2:
                     logger.error(f"Ошибка send_message: {e2}")
                     raise
             
             server.quit()
-            logger.info(f"✅ Email успешно отправлен на {recipient_email}")
+            logger.info(f"Email успешно отправлен на {recipient_email}")
             return True
             
         except smtplib.SMTPAuthenticationError as e:
-            logger.error(f"⌛ Ошибка аутентификации SMTP: {e}")
+            logger.error(f"Ошибка аутентификации SMTP: {e}")
             logger.error("ПРОВЕРЬТЕ: EMAIL_PASSWORD должен быть паролем приложения Mail.ru, НЕ обычным паролем!")
-            logger.error("Создайте пароль приложения: Mail.ru → Настройки → Безопасность → Пароли приложений")
         except smtplib.SMTPServerDisconnected as e:
-            logger.error(f"⌛ Сервер разорвал соединение: {e}")
-            logger.error("Возможно, сервер блокирует подключение с Render")
+            logger.error(f"Сервер разорвал соединение: {e}")
         except smtplib.SMTPException as e:
-            logger.error(f"⌛ SMTP ошибка: {e}")
+            logger.error(f"SMTP ошибка: {e}")
         
         return False
         
     except Exception as e:
-        logger.error(f"⌛ Общая ошибка отправки email: {e}")
+        logger.error(f"Общая ошибка отправки email: {e}")
         logger.exception("Полный traceback:")
         return False
 
@@ -329,24 +315,19 @@ def start_command(message):
     user_name = message.from_user.first_name or "Пользователь"
     username = message.from_user.username
     
-    # Инициализируем сессию пользователя
     user_sessions[user_id] = {
         'name': user_name,
         'username': username,
         'started_at': datetime.now()
     }
     
-    # Создаем клавиатуру с Web App (только одна кнопка)
     keyboard = types.InlineKeyboardMarkup()
-    
-    # Кнопка Web App
     webapp_btn = types.InlineKeyboardButton(
         text="Выберите актив",
         web_app=types.WebAppInfo(url=WEBAPP_URL)
     )
     keyboard.add(webapp_btn)
     
-    # Обновленный текст приветствия от Сбера
     welcome_text = f"""
 🤖 Привет, {user_name}! Меня зовут **Доки**!
 
@@ -455,7 +436,6 @@ def handle_callback_query(call):
         elif call.data == "contacts":
             contacts_command(call.message)
         
-        # Убираем "часики" с кнопки
         bot.answer_callback_query(call.id)
         
     except Exception as e:
@@ -470,7 +450,6 @@ def handle_web_app_data(message):
     logger.info(f"   👤 От пользователя: {message.from_user.first_name} (ID: {message.from_user.id})")
     
     try:
-        # Проверяем наличие данных
         if not hasattr(message, 'web_app_data') or not message.web_app_data:
             logger.error("❌ НЕТ ДАННЫХ WEB_APP_DATA В СООБЩЕНИИ")
             bot.reply_to(message, "⌛ Не получены данные от веб-приложения")
@@ -483,7 +462,6 @@ def handle_web_app_data(message):
         
         logger.info(f"   📋 Сырые данные: {message.web_app_data.data}")
         
-        # Получаем данные от веб-приложения
         web_app_data = json.loads(message.web_app_data.data)
         action = web_app_data.get('action')
         
@@ -496,7 +474,6 @@ def handle_web_app_data(message):
         logger.info(f"   📋 Полные данные: {web_app_data}")
         
         if action == 'send_email':
-            # Пользователь запросил отправку на email из веб-приложения
             email = web_app_data.get('email')
             asset_type = web_app_data.get('asset_type')
             
@@ -520,11 +497,9 @@ def handle_web_app_data(message):
                 bot.reply_to(message, f"⌛ Неизвестный тип актива: {asset_type}")
                 return
             
-            # Отправляем уведомление пользователю
             logger.info(f"📤 Отправляем уведомление пользователю о начале отправки")
             bot.reply_to(message, f"📧 Письмо направлено на {email}")
             
-            # Отправляем документ
             logger.info(f"📮 НАЧИНАЕМ ОТПРАВКУ EMAIL:")
             logger.info(f"   📬 Получатель: {email}")
             logger.info(f"   📄 Тип актива: {asset_type}")
@@ -546,7 +521,6 @@ def handle_web_app_data(message):
 
 📄 Нужны документы для другого актива? Откройте каталог снова!
 """
-                # Добавляем кнопку для повторного открытия
                 keyboard = types.InlineKeyboardMarkup()
                 webapp_btn = types.InlineKeyboardButton(
                     "Выберите другой актив", 
@@ -561,7 +535,6 @@ def handle_web_app_data(message):
                     reply_markup=keyboard
                 )
                 
-                # Логируем для админа
                 if ADMIN_CHAT_ID:
                     admin_msg = f"📧 Email отправлен\n👤 {user_name} (@{message.from_user.username})\n📄 {asset['title']}\n📧 {email}"
                     try:
@@ -584,7 +557,6 @@ def handle_web_app_data(message):
                 )
         
         elif action == 'download_completed':
-            # Пользователь скачал документ из веб-приложения
             asset_type = web_app_data.get('asset_type')
             logger.info(f"📥 СКАЧИВАНИЕ ЗАВЕРШЕНО:")
             logger.info(f"   📄 Актив: {asset_type}")
@@ -600,7 +572,6 @@ def handle_web_app_data(message):
 📂 **Файл:** {asset['filename']}
 """
                 
-                # Кнопка только для дополнительных действий (убрали кнопку контактов)
                 keyboard = types.InlineKeyboardMarkup()
                 webapp_btn = types.InlineKeyboardButton(
                     "Выбрать другой актив", 
@@ -643,14 +614,12 @@ def test_send_command(message):
         bot.reply_to(message, f"⌛ Неверный формат email: {test_email}")
         return
     
-    # Симулируем данные от веб-приложения
     test_data = {
         'action': 'send_email',
         'asset_type': 'бизнес-центр',
         'email': test_email
     }
     
-    # Обрабатываем как будто пришло от веб-приложения
     user_name = message.from_user.first_name or "Пользователь"
     
     logger.info(f"Тест отправки через /test_send")
@@ -670,12 +639,10 @@ def test_email_command(message):
     """Команда для тестирования отправки email"""
     user_name = message.from_user.first_name or "Тестовый пользователь"
     
-    # Проверяем настройки email
     if not EMAIL_USER or not EMAIL_PASSWORD:
         bot.reply_to(message, "⌛ Email настройки не заданы в переменных окружения")
         return
     
-    # Проверяем, есть ли email в команде
     parts = message.text.split()
     if len(parts) > 1:
         test_email = parts[1]
@@ -683,12 +650,9 @@ def test_email_command(message):
             bot.reply_to(message, f"⌛ Неверный формат email: {test_email}")
             return
     else:
-        test_email = EMAIL_USER  # По умолчанию на свой email
-        bot.reply_to(message, "💡 Используйте: /test_email адрес@почта.ru для отправки на конкретный адрес")
-    
+        test_email = EMAIL_USER
     bot.reply_to(message, f"📄 Отправляю тестовое письмо на {test_email}...")
     
-    # ВАЖНО: используем test_email, а не EMAIL_USER!
     success = send_email_with_document(test_email, 'бизнес-центр', user_name)
     
     if success:
@@ -704,14 +668,12 @@ def handle_text_messages(message):
     logger.info(f"   📝 Тип: {message.content_type}")
     logger.info(f"   📄 Текст: {message.text if hasattr(message, 'text') else 'НЕТ ТЕКСТА'}")
     
-    # Проверяем, не является ли это сообщением с web_app_data
     if message.content_type == 'web_app_data':
         logger.info("🔄 Это сообщение web_app_data, перенаправляем в специальный обработчик")
         return
     
     user_message = message.text.lower() if hasattr(message, 'text') and message.text else ""
     
-    # Поиск актива по ключевым словам
     found_assets = []
     for asset_key, asset_data in ASSETS.items():
         if (any(word in user_message for word in asset_key.split('-')) or
@@ -720,7 +682,6 @@ def handle_text_messages(message):
     
     if found_assets:
         if len(found_assets) == 1:
-            # Найден один актив
             asset_key, asset_data = found_assets[0]
             
             response_text = f"""
@@ -733,7 +694,6 @@ def handle_text_messages(message):
             
             keyboard = types.InlineKeyboardMarkup()
             
-            # Кнопка Web App для этого актива
             webapp_url_with_asset = f"{WEBAPP_URL}?asset={asset_key}"
             webapp_btn = types.InlineKeyboardButton(
                 f"📋 Открыть {asset_data['title']}", 
@@ -741,7 +701,6 @@ def handle_text_messages(message):
             )
             keyboard.add(webapp_btn)
             
-            # Кнопка общего каталога
             catalog_btn = types.InlineKeyboardButton(
                 "📚 Весь каталог", 
                 web_app=types.WebAppInfo(url=WEBAPP_URL)
@@ -749,7 +708,6 @@ def handle_text_messages(message):
             keyboard.add(catalog_btn)
             
         else:
-            # Найдено несколько активов
             assets_text = '\n'.join([
                 f"• {data['icon']} {data['title']}" 
                 for _, data in found_assets
@@ -778,66 +736,12 @@ def handle_text_messages(message):
         )
         
     else:
-        # Актив не найден или общий вопрос
         response_text = f"""
 🤖 Понял вас не совсем точно.
 
 📋 **Доступно {len(ASSETS)} типов активов:**
 """
         
-        # Показываем первые 4 актива
-        for i, (_, asset_data) in enumerate(list(ASSETS.items())[:4]):
-            response_text += f"{asset_data['icon']} {asset_data['title']}\n"
-        
-        if len(ASSETS) > 4:
-            response_text += f"...и еще {len(ASSETS) - 4}\n"
-        
-        response_text += "\n💡 **Откройте каталог для удобного выбора:**"
-        
-        keyboard = types.InlineKeyboardMarkup()
-        webapp_btn = types.InlineKeyboardButton(
-            "Выберите актив", 
-            web_app=types.WebAppInfo(url=WEBAPP_URL)
-        )
-        help_btn = types.InlineKeyboardButton("ℹ️ Справка", callback_data="help")
-        keyboard.add(webapp_btn)
-        keyboard.add(help_btn)
-        
-        bot.reply_to(
-            message, 
-            response_text, 
-            parse_mode='Markdown',
-            reply_markup=keyboard
-        )
-"""
-        
-        # Показываем первые 4 актива
-        for i, (_, asset_data) in enumerate(list(ASSETS.items())[:4]):
-            response_text += f"{asset_data['icon']} {asset_data['title']}\n"
-        
-        if len(ASSETS) > 4:
-            response_text += f"...и еще {len(ASSETS) - 4}\n"
-        
-        response_text += "\n💡 **Откройте каталог для удобного выбора:**"
-        
-        keyboard = types.InlineKeyboardMarkup()
-        webapp_btn = types.InlineKeyboardButton(
-            "Выберите актив", 
-            web_app=types.WebAppInfo(url=WEBAPP_URL)
-        )
-        help_btn = types.InlineKeyboardButton("ℹ️ Справка", callback_data="help")
-        keyboard.add(webapp_btn)
-        keyboard.add(help_btn)
-        
-        bot.reply_to(
-            message, 
-            response_text, 
-            parse_mode='Markdown',
-            reply_markup=keyboard
-        )
-"""
-        
-        # Показываем первые 4 актива
         for i, (_, asset_data) in enumerate(list(ASSETS.items())[:4]):
             response_text += f"{asset_data['icon']} {asset_data['title']}\n"
         
@@ -885,11 +789,9 @@ def main():
     print("   ✅ Тестовая команда /test_email")
     print("=" * 50)
     
-    # Очищаем webhook и старые обновления перед запуском
     try:
         bot.remove_webhook()
         bot.delete_webhook()
-        # Очищаем все накопившиеся обновления
         try:
             updates = bot.get_updates(timeout=1)
             if updates:
@@ -906,41 +808,30 @@ def main():
     except Exception as e:
         logger.warning(f"Предупреждение при очистке webhook: {e}")
     
-    # Ждем немного перед запуском polling
-    import time
     time.sleep(2)
     
     try:
-        # Проверяем соединение с Telegram API
         bot_info = bot.get_me()
         print(f"✅ Подключение к Telegram: @{bot_info.username}")
         
-        # Запускаем Flask сервер в отдельном потоке (если порт свободен)
-        flask_started = False
         try:
             port = int(os.environ.get('PORT', 10000))
-            # Проверяем, свободен ли порт
-            import socket
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             result = sock.connect_ex(('127.0.0.1', port))
             sock.close()
             
-            if result != 0:  # Порт свободен
+            if result != 0:
                 flask_thread = Thread(target=run_flask)
                 flask_thread.daemon = True
                 flask_thread.start()
-                flask_started = True
                 logger.info(f"🌐 HTTP сервер запущен на порту {port}")
             else:
                 logger.warning(f"⚠️ Порт {port} уже занят, Flask не запущен")
-                logger.warning("Health checks могут не работать, но бот продолжит работу")
         except Exception as e:
             logger.warning(f"⚠️ Не удалось запустить Flask: {e}")
         
-        # Небольшая задержка перед запуском бота
         time.sleep(2)
         
-        # Запускаем бота
         logger.info("🤖 Telegram бот запущен и готов к работе")
         bot.polling(none_stop=True, timeout=60, skip_pending=True)
         
@@ -948,9 +839,8 @@ def main():
         if "Conflict" in str(e):
             logger.error("⌛ Конфликт: другой экземпляр бота уже запущен")
             logger.error("Остановите другой процесс или подождите 30 секунд")
-            import time
             time.sleep(30)
-            main()  # Пробуем снова через 30 секунд
+            main()
         else:
             logger.error(f"Telegram API ошибка: {e}")
             raise
@@ -958,7 +848,6 @@ def main():
     except Exception as e:
         logger.error(f"Критическая ошибка: {e}")
         
-        # Уведомляем админа об ошибке
         if ADMIN_CHAT_ID:
             try:
                 bot.send_message(
@@ -969,9 +858,7 @@ def main():
             except:
                 pass
         
-        # Пытаемся перезапуститься через 5 секунд
         print("⚠️ Попытка перезапуска через 5 секунд...")
-        import time
         time.sleep(5)
         main()
 
