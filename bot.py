@@ -484,38 +484,52 @@ def handle_web_app_data(message):
         user_id = message.from_user.id
         user_name = message.from_user.first_name or "Пользователь"
         
-        logger.info(f"Получены данные от Web App: action={action}, user={user_name}")
-        logger.info(f"Полные данные: {web_app_data}")
+        logger.info(f"📱 ПОЛУЧЕНЫ ДАННЫЕ ОТ WEB APP:")
+        logger.info(f"   👤 Пользователь: {user_name} (ID: {user_id})")
+        logger.info(f"   🎯 Действие: {action}")
+        logger.info(f"   📋 Полные данные: {web_app_data}")
         
         if action == 'send_email':
             # Пользователь запросил отправку на email из веб-приложения
             email = web_app_data.get('email')
             asset_type = web_app_data.get('asset_type')
             
-            logger.info(f"Запрос на отправку email: {email}, актив: {asset_type}")
+            logger.info(f"📧 ЗАПРОС НА ОТПРАВКУ EMAIL:")
+            logger.info(f"   📬 Email: {email}")
+            logger.info(f"   📄 Актив: {asset_type}")
             
             if not email:
+                logger.error("❌ Email адрес не указан в данных")
                 bot.reply_to(message, "⌛ Email адрес не указан")
                 return
             
             if not validate_email(email):
+                logger.error(f"❌ Неверный формат email: {email}")
                 bot.reply_to(message, f"⌛ Неверный формат email адреса: {email}")
                 return
             
             if asset_type not in ASSETS:
+                logger.error(f"❌ Неизвестный актив: {asset_type}")
+                logger.error(f"   Доступные активы: {list(ASSETS.keys())}")
                 bot.reply_to(message, f"⌛ Неизвестный тип актива: {asset_type}")
-                logger.error(f"Актив '{asset_type}' не найден. Доступные: {list(ASSETS.keys())}")
                 return
             
             # Отправляем уведомление пользователю
+            logger.info(f"📤 Отправляем уведомление пользователю о начале отправки")
             bot.reply_to(message, f"📧 Отправляю документы на {email}...")
             
             # Отправляем документ
+            logger.info(f"📮 НАЧИНАЕМ ОТПРАВКУ EMAIL:")
+            logger.info(f"   📬 Получатель: {email}")
+            logger.info(f"   📄 Тип актива: {asset_type}")
+            logger.info(f"   👤 Имя отправителя: {user_name}")
+            
             success = send_email_with_document(email, asset_type, user_name)
             
             asset = ASSETS[asset_type]
             
             if success:
+                logger.info(f"✅ EMAIL УСПЕШНО ОТПРАВЛЕН на {email}")
                 response_text = f"""
 ✅ **Документы отправлены!**
 
@@ -546,9 +560,11 @@ def handle_web_app_data(message):
                     admin_msg = f"📧 Email отправлен\n👤 {user_name} (@{message.from_user.username})\n📄 {asset['title']}\n📧 {email}"
                     try:
                         bot.send_message(ADMIN_CHAT_ID, admin_msg)
-                    except:
-                        pass
+                        logger.info(f"📨 Уведомление админу отправлено")
+                    except Exception as e:
+                        logger.error(f"❌ Ошибка отправки уведомления админу: {e}")
             else:
+                logger.error(f"❌ ОШИБКА ОТПРАВКИ EMAIL на {email}")
                 bot.send_message(
                     message.chat.id,
                     f"⌛ **Ошибка отправки email**\n\n"
@@ -564,6 +580,10 @@ def handle_web_app_data(message):
         elif action == 'download_completed':
             # Пользователь скачал документ из веб-приложения
             asset_type = web_app_data.get('asset_type')
+            logger.info(f"📥 СКАЧИВАНИЕ ЗАВЕРШЕНО:")
+            logger.info(f"   📄 Актив: {asset_type}")
+            logger.info(f"   👤 Пользователь: {user_name}")
+            
             if asset_type in ASSETS:
                 asset = ASSETS[asset_type]
                 
@@ -588,10 +608,19 @@ def handle_web_app_data(message):
                     parse_mode='Markdown',
                     reply_markup=keyboard
                 )
+            else:
+                logger.error(f"❌ Неизвестный актив при скачивании: {asset_type}")
         
+        else:
+            logger.warning(f"⚠️ Неизвестное действие от веб-приложения: {action}")
+        
+    except json.JSONDecodeError as e:
+        logger.error(f"❌ Ошибка парсинга JSON от Web App: {e}")
+        logger.error(f"   Сырые данные: {message.web_app_data.data}")
+        bot.reply_to(message, "⌛ Ошибка обработки данных от веб-приложения")
     except Exception as e:
-        logger.error(f"Ошибка обработки Web App данных: {e}")
-        logger.exception("Полный traceback:")
+        logger.error(f"❌ Общая ошибка обработки Web App данных: {e}")
+        logger.exception("📋 Полный traceback:")
         bot.reply_to(message, "⌛ Произошла ошибка при обработке запроса")
 
 @bot.message_handler(commands=['test_send'])
