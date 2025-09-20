@@ -1,3 +1,8 @@
+#!/usr/bin/env python3
+"""
+Telegram бот Доки для работы с документами залоговой службы
+"""
+
 import os
 import telebot
 from telebot import types
@@ -10,7 +15,6 @@ from email.mime.base import MIMEBase
 from email import encoders
 import email.utils
 import requests
-from io import BytesIO
 import json
 import re
 from datetime import datetime
@@ -19,9 +23,6 @@ from flask import Flask, jsonify
 import time
 import uuid
 import sys
-import socket
-import subprocess
-import atexit
 
 # Уникальный ID процесса
 PROCESS_ID = str(uuid.uuid4())[:8]
@@ -129,7 +130,7 @@ ASSETS = {
         'url': 'https://github.com/11021983A/Docky/raw/main/Бизнес_КИ.docx'
     },
     'комплекс-имущества': {
-        'icon': '🏗️',
+        'icon': '🗝️',
         'title': 'Комплекс имущества',
         'description': 'Имущественные комплексы',
         'filename': 'Бизнес_КИ.docx',
@@ -166,14 +167,14 @@ def send_email_with_document(recipient_email: str, asset_type: str, user_name: s
         logger.error("EMAIL_PASSWORD не задан")
         return False
     
-    logger.info(f"=" * 50)
-    logger.info(f"НАЧАЛО ОТПРАВКИ EMAIL")
+    logger.info("=" * 50)
+    logger.info("НАЧАЛО ОТПРАВКИ EMAIL")
     logger.info(f"Отправитель: {EMAIL_USER}")
     logger.info(f"Получатель: {recipient_email}")
     logger.info(f"Актив: {asset_type}")
     logger.info(f"Пользователь: {user_name}")
     logger.info(f"SMTP: {SMTP_SERVER}:{SMTP_PORT}")
-    logger.info(f"=" * 50)
+    logger.info("=" * 50)
     
     try:
         asset = ASSETS.get(asset_type)
@@ -190,7 +191,7 @@ def send_email_with_document(recipient_email: str, asset_type: str, user_name: s
         msg['Date'] = email.utils.formatdate(localtime=True)
         msg['Message-ID'] = email.utils.make_msgid()
         
-        # HTML тело письма (упрощенное)
+        # HTML тело письма
         html_body = f"""
         <html>
         <head>
@@ -274,32 +275,18 @@ def send_email_with_document(recipient_email: str, asset_type: str, user_name: s
             server.login(EMAIL_USER, EMAIL_PASSWORD)
             
             logger.info(f"Отправляем письмо на {recipient_email}")
-            logger.info(f"From: {EMAIL_USER}")
-            logger.info(f"To: {recipient_email}")
             
-            try:
-                server.sendmail(EMAIL_USER, [recipient_email], msg.as_string())
-                logger.info("Метод sendmail успешен")
-            except Exception as e:
-                logger.error(f"Ошибка sendmail: {e}")
-                try:
-                    server.send_message(msg)
-                    logger.info("Метод send_message успешен")
-                except Exception as e2:
-                    logger.error(f"Ошибка send_message: {e2}")
-                    raise
-            
+            server.send_message(msg)
             server.quit()
+            
             logger.info(f"Email успешно отправлен на {recipient_email}")
             return True
             
         except smtplib.SMTPAuthenticationError as e:
             logger.error(f"Ошибка аутентификации SMTP: {e}")
-            logger.error("ПРОВЕРЬТЕ: EMAIL_PASSWORD должен быть паролем приложения Mail.ru, НЕ обычным паролем!")
-        except smtplib.SMTPServerDisconnected as e:
-            logger.error(f"Сервер разорвал соединение: {e}")
-        except smtplib.SMTPException as e:
-            logger.error(f"SMTP ошибка: {e}")
+            logger.error("ПРОВЕРЬТЕ: EMAIL_PASSWORD должен быть паролем приложения Mail.ru!")
+        except Exception as e:
+            logger.error(f"Ошибка SMTP: {e}")
         
         return False
         
@@ -427,103 +414,90 @@ def contacts_command(message):
         parse_mode='Markdown'
     )
 
-@bot.callback_query_handler(func=lambda call: True)
-def handle_callback_query(call):
-    """Обработка нажатий на кнопки"""
-    try:
-        if call.data == "help":
-            help_command(call.message)
-        elif call.data == "contacts":
-            contacts_command(call.message)
-        
-        bot.answer_callback_query(call.id)
-        
-    except Exception as e:
-        logger.error(f"Ошибка в callback: {e}")
-        bot.answer_callback_query(call.id, "Произошла ошибка")
-
 @bot.message_handler(content_types=['web_app_data'])
 def handle_web_app_data(message):
     """Обработка данных от Web App"""
-    logger.info("📢 ВЫЗВАН ОБРАБОТЧИК WEB_APP_DATA")
-    logger.info(f"   📱 Тип сообщения: {message.content_type}")
-    logger.info(f"   👤 От пользователя: {message.from_user.first_name} (ID: {message.from_user.id})")
+    logger.info("=" * 50)
+    logger.info("ПОЛУЧЕНО WEB_APP_DATA")
+    logger.info(f"От: {message.from_user.first_name} (ID: {message.from_user.id})")
     
     try:
+        # Проверяем наличие данных
         if not hasattr(message, 'web_app_data') or not message.web_app_data:
-            logger.error("❌ НЕТ ДАННЫХ WEB_APP_DATA В СООБЩЕНИИ")
-            bot.reply_to(message, "⏳ Не получены данные от веб-приложения")
+            logger.error("НЕТ ДАННЫХ WEB_APP_DATA")
+            bot.reply_to(message, "⚠️ Не получены данные от веб-приложения")
             return
         
         if not hasattr(message.web_app_data, 'data') or not message.web_app_data.data:
-            logger.error("❌ ПУСТЫЕ ДАННЫЕ В WEB_APP_DATA")
-            bot.reply_to(message, "⏳ Пустые данные от веб-приложения")
+            logger.error("ПУСТЫЕ ДАННЫЕ В WEB_APP_DATA")
+            bot.reply_to(message, "⚠️ Пустые данные от веб-приложения")
             return
         
-        logger.info(f"   📋 Сырые данные: {message.web_app_data.data}")
+        # Парсим JSON данные
+        raw_data = message.web_app_data.data
+        logger.info(f"Сырые данные: {raw_data}")
         
-        web_app_data = json.loads(message.web_app_data.data)
+        web_app_data = json.loads(raw_data)
         action = web_app_data.get('action')
         
-        user_id = message.from_user.id
-        user_name = message.from_user.first_name or "Пользователь"
+        logger.info(f"Действие: {action}")
+        logger.info(f"Полные данные: {web_app_data}")
         
-        logger.info(f"📱 ПОЛУЧЕНЫ ДАННЫЕ ОТ WEB APP:")
-        logger.info(f"   👤 Пользователь: {user_name} (ID: {user_id})")
-        logger.info(f"   🎯 Действие: {action}")
-        logger.info(f"   📋 Полные данные: {web_app_data}")
-        
+        # Обработка отправки email
         if action == 'send_email':
             email = web_app_data.get('email')
             asset_type = web_app_data.get('asset_type')
             
-            logger.info(f"📧 ЗАПРОС НА ОТПРАВКУ EMAIL:")
-            logger.info(f"   📬 Email: {email}")
-            logger.info(f"   📄 Актив: {asset_type}")
+            logger.info(f"ЗАПРОС НА ОТПРАВКУ EMAIL")
+            logger.info(f"Email: {email}")
+            logger.info(f"Актив: {asset_type}")
             
+            # Валидация email
             if not email:
-                logger.error("❌ Email адрес не указан в данных")
-                bot.reply_to(message, "⏳ Email адрес не указан")
+                logger.error("Email адрес не указан")
+                bot.reply_to(message, "⚠️ Email адрес не указан")
                 return
             
             if not validate_email(email):
-                logger.error(f"❌ Неверный формат email: {email}")
-                bot.reply_to(message, f"⏳ Неверный формат email адреса: {email}")
+                logger.error(f"Неверный формат email: {email}")
+                bot.reply_to(message, f"⚠️ Неверный формат email: {email}")
                 return
             
+            # Проверка актива
             if asset_type not in ASSETS:
-                logger.error(f"❌ Неизвестный актив: {asset_type}")
-                logger.error(f"   Доступные активы: {list(ASSETS.keys())}")
-                bot.reply_to(message, f"⏳ Неизвестный тип актива: {asset_type}")
+                logger.error(f"Неизвестный актив: {asset_type}")
+                logger.error(f"Доступные: {list(ASSETS.keys())}")
+                bot.reply_to(message, f"⚠️ Неизвестный тип актива: {asset_type}")
                 return
             
-            logger.info(f"📤 Отправляем уведомление пользователю о начале отправки")
-            bot.reply_to(message, f"📧 Письмо направлено на {email}")
+            # Получаем имя пользователя
+            user_name = message.from_user.first_name or "Пользователь"
             
-            logger.info(f"🔮 НАЧИНАЕМ ОТПРАВКУ EMAIL:")
-            logger.info(f"   📬 Получатель: {email}")
-            logger.info(f"   📄 Тип актива: {asset_type}")
-            logger.info(f"   👤 Имя отправителя: {user_name}")
+            # Отправляем уведомление пользователю
+            bot.reply_to(message, f"📧 Отправляем документы на {email}...")
             
+            # Отправляем email
+            logger.info(f"НАЧИНАЕМ ОТПРАВКУ EMAIL")
             success = send_email_with_document(email, asset_type, user_name)
             
             asset = ASSETS[asset_type]
             
             if success:
                 logger.info(f"✅ EMAIL УСПЕШНО ОТПРАВЛЕН на {email}")
-                response_text = f"""
-✅ **Документы отправлены!**
+                
+                # Формируем ответ
+                response_text = f"""✅ **Документы отправлены!**
 
 📧 **Email:** {email}
 📄 **Актив:** {asset['icon']} {asset['title']}
 
 📬 Проверьте входящие письма и папку "Спам".
 
-📄 Нужны документы для другого актива? Откройте каталог снова!
-"""
+📄 Нужны документы для другого актива? Откройте каталог снова!"""
+                
                 keyboard = types.InlineKeyboardMarkup()
                 webapp_btn = types.InlineKeyboardButton(
-                    "Выберите другой актив", 
+                    "Выбрать другой актив", 
                     web_app=types.WebAppInfo(url=WEBAPP_URL)
                 )
                 keyboard.add(webapp_btn)
@@ -535,42 +509,38 @@ def handle_web_app_data(message):
                     reply_markup=keyboard
                 )
                 
+                # Уведомление админу
                 if ADMIN_CHAT_ID:
-                    admin_msg = f"📧 Email отправлен\n👤 {user_name} (@{message.from_user.username})\n📄 {asset['title']}\n📧 {email}"
+                    admin_msg = f"📧 Email отправлен\n👤 {user_name}\n📄 {asset['title']}\n📧 {email}"
                     try:
                         bot.send_message(ADMIN_CHAT_ID, admin_msg)
-                        logger.info(f"📨 Уведомление админу отправлено")
+                        logger.info("Уведомление админу отправлено")
                     except Exception as e:
-                        logger.error(f"❌ Ошибка отправки уведомления админу: {e}")
+                        logger.error(f"Ошибка отправки админу: {e}")
             else:
-                logger.error(f"❌ ОШИБКА ОТПРАВКИ EMAIL на {email}")
-                bot.send_message(
-                    message.chat.id,
-                    f"⏳ **Ошибка отправки email**\n\n"
-                    f"Не удалось отправить документы для {asset['icon']} {asset['title']} на адрес {email}.\n\n"
-                    f"📄 Попробуйте:\n"
-                    f"• Проверить правильность email\n"
-                    f"• Скачать документ и отправить вручную\n"
-                    f"• Написать нам напрямую: {EMAIL_USER}\n\n"
-                    f"💡 Используйте команду /test_email для проверки системы",
-                    parse_mode='Markdown'
-                )
+                logger.error(f"ОШИБКА ОТПРАВКИ EMAIL на {email}")
+                error_text = f"""⚠️ **Ошибка отправки**
+
+Не удалось отправить документы на {email}
+
+Попробуйте:
+• Проверить правильность email
+• Использовать команду /test_email
+• Написать нам напрямую: {EMAIL_USER}"""
+                
+                bot.send_message(message.chat.id, error_text, parse_mode='Markdown')
         
+        # Обработка завершения скачивания
         elif action == 'download_completed':
             asset_type = web_app_data.get('asset_type')
-            logger.info(f"📥 СКАЧИВАНИЕ ЗАВЕРШЕНО:")
-            logger.info(f"   📄 Актив: {asset_type}")
-            logger.info(f"   👤 Пользователь: {user_name}")
+            logger.info(f"СКАЧИВАНИЕ ЗАВЕРШЕНО: {asset_type}")
             
             if asset_type in ASSETS:
                 asset = ASSETS[asset_type]
-                
-                response_text = f"""
-✅ **Документ скачан!**
+                response_text = f"""✅ **Документ скачан!**
 
 📄 **Актив:** {asset['icon']} {asset['title']}
-📂 **Файл:** {asset['filename']}
-"""
+📂 **Файл:** {asset['filename']}"""
                 
                 keyboard = types.InlineKeyboardMarkup()
                 webapp_btn = types.InlineKeyboardButton(
@@ -579,27 +549,20 @@ def handle_web_app_data(message):
                 )
                 keyboard.add(webapp_btn)
                 
-                bot.reply_to(
-                    message, 
-                    response_text, 
-                    parse_mode='Markdown',
-                    reply_markup=keyboard
-                )
-            else:
-                logger.error(f"❌ Неизвестный актив при скачивании: {asset_type}")
+                bot.reply_to(message, response_text, parse_mode='Markdown', reply_markup=keyboard)
         
         else:
-            logger.warning(f"⚠️ Неизвестное действие от веб-приложения: {action}")
-            logger.warning(f"   Полученные данные: {web_app_data}")
-        
+            logger.warning(f"Неизвестное действие: {action}")
+            logger.warning(f"Данные: {web_app_data}")
+    
     except json.JSONDecodeError as e:
-        logger.error(f"❌ Ошибка парсинга JSON от Web App: {e}")
-        logger.error(f"   Сырые данные: {message.web_app_data.data if hasattr(message, 'web_app_data') and message.web_app_data else 'НЕТ ДАННЫХ'}")
-        bot.reply_to(message, "⏳ Ошибка обработки данных от веб-приложения")
+        logger.error(f"Ошибка парсинга JSON: {e}")
+        logger.error(f"Сырые данные: {message.web_app_data.data if hasattr(message, 'web_app_data') else 'НЕТ'}")
+        bot.reply_to(message, "⚠️ Ошибка обработки данных от приложения")
     except Exception as e:
-        logger.error(f"❌ Общая ошибка обработки Web App данных: {e}")
-        logger.exception("📋 Полный traceback:")
-        bot.reply_to(message, "⏳ Произошла ошибка при обработке запроса")
+        logger.error(f"Общая ошибка: {e}")
+        logger.exception("Полный traceback:")
+        bot.reply_to(message, "⚠️ Произошла ошибка при обработке запроса")
 
 @bot.message_handler(commands=['test_email'])
 def test_email_command(message):
@@ -607,14 +570,14 @@ def test_email_command(message):
     user_name = message.from_user.first_name or "Тестовый пользователь"
     
     if not EMAIL_USER or not EMAIL_PASSWORD:
-        bot.reply_to(message, "⏳ Email настройки не заданы в переменных окружения")
+        bot.reply_to(message, "⚠️ Email настройки не заданы в переменных окружения")
         return
     
     parts = message.text.split()
     if len(parts) > 1:
         test_email = parts[1]
         if not validate_email(test_email):
-            bot.reply_to(message, f"⏳ Неверный формат email: {test_email}")
+            bot.reply_to(message, f"⚠️ Неверный формат email: {test_email}")
             return
     else:
         test_email = EMAIL_USER
@@ -627,22 +590,16 @@ def test_email_command(message):
     if success:
         bot.reply_to(message, f"✅ Тестовое письмо успешно отправлено на {test_email}!\n📬 Проверьте почту и папку Спам.")
     else:
-        bot.reply_to(message, f"⏳ Ошибка отправки на {test_email}.\n📋 Проверьте логи для деталей.")
+        bot.reply_to(message, f"⚠️ Ошибка отправки на {test_email}.\n📋 Проверьте логи для деталей.")
 
 @bot.message_handler(func=lambda message: True)
 def handle_text_messages(message):
     """Обработка текстовых сообщений"""
-    logger.info(f"📨 ПОЛУЧЕНО ТЕКСТОВОЕ СООБЩЕНИЕ:")
-    logger.info(f"   👤 От: {message.from_user.first_name} (ID: {message.from_user.id})")
-    logger.info(f"   📝 Тип: {message.content_type}")
-    logger.info(f"   📄 Текст: {message.text if hasattr(message, 'text') else 'НЕТ ТЕКСТА'}")
-    
-    if message.content_type == 'web_app_data':
-        logger.info("📄 Это сообщение web_app_data, должно обработаться отдельным обработчиком")
-        return
+    logger.info(f"Получено текстовое сообщение от {message.from_user.first_name}: {message.text}")
     
     user_message = message.text.lower() if hasattr(message, 'text') and message.text else ""
     
+    # Поиск активов по ключевым словам
     found_assets = []
     for asset_key, asset_data in ASSETS.items():
         if (any(word in user_message for word in asset_key.split('-')) or
@@ -735,29 +692,27 @@ def handle_text_messages(message):
             reply_markup=keyboard
         )
 
-# ДИАГНОСТИЧЕСКИЙ ОБРАБОТЧИК - ДОЛЖЕН БЫТЬ ПОСЛЕДНИМ
-@bot.message_handler(func=lambda message: True)
-def debug_all_messages(message):
-    """Диагностика всех сообщений - ФИНАЛЬНЫЙ ОБРАБОТЧИК"""
-    logger.info(f"🔍 НЕОБРАБОТАННОЕ СООБЩЕНИЕ:")
-    logger.info(f"   Тип: {message.content_type}")
-    logger.info(f"   От: {message.from_user.first_name}")
-    logger.info(f"   Время: {datetime.now()}")
-    logger.info(f"   Текст: {getattr(message, 'text', 'НЕТ ТЕКСТА')}")
-    
-    # Отправляем базовое приветствие для неизвестных команд
-    if hasattr(message, 'text') and message.text.startswith('/'):
-        bot.reply_to(message, "❓ Неизвестная команда. Используйте /start для начала работы.")
-    else:
-        # Для обычных текстовых сообщений перенаправляем в handle_text_messages
-        handle_text_messages(message)
+@bot.callback_query_handler(func=lambda call: True)
+def handle_callback_query(call):
+    """Обработка нажатий на кнопки"""
+    try:
+        if call.data == "help":
+            help_command(call.message)
+        elif call.data == "contacts":
+            contacts_command(call.message)
+        
+        bot.answer_callback_query(call.id)
+        
+    except Exception as e:
+        logger.error(f"Ошибка в callback: {e}")
+        bot.answer_callback_query(call.id, "Произошла ошибка")
 
 def main():
     """Основная функция запуска бота"""
     logger.info(f"🚀 Запуск Telegram Web App бота 'Доки' [Process: {PROCESS_ID}]")
     logger.info(f"📱 Web App URL: {WEBAPP_URL}")
-    logger.info(f"📧 Email: {'✅ Настроен' if EMAIL_USER and EMAIL_PASSWORD else '⏳ Не настроен'}")
-    logger.info(f"👮 Админ: {'✅ Настроен' if ADMIN_CHAT_ID else '⏳ Не настроен'}")
+    logger.info(f"📧 Email: {'✅ Настроен' if EMAIL_USER and EMAIL_PASSWORD else '⚠️ Не настроен'}")
+    logger.info(f"👮 Админ: {'✅ Настроен' if ADMIN_CHAT_ID else '⚠️ Не настроен'}")
     
     print("=" * 50)
     print(f"🤖 TELEGRAM WEB APP БОТ 'ДОКИ' ЗАПУЩЕН [{PROCESS_ID}]")
@@ -765,7 +720,7 @@ def main():
     print(f"📱 Web App: {WEBAPP_URL}")
     print(f"📧 Email: {EMAIL_USER}")
     print(f"🌐 Health Check: http://localhost:{os.environ.get('PORT', 10000)}")
-    print(f"🔧 Функции:")
+    print(f"📋 Функции:")
     print("   ✅ Telegram Web App интеграция")
     print("   ✅ Отправка email через Mail.ru")
     print("   ✅ HTTP Health Check для Render")
@@ -776,6 +731,7 @@ def main():
     print("=" * 50)
     
     try:
+        # Очистка webhook и старых обновлений
         bot.remove_webhook()
         bot.delete_webhook()
         try:
@@ -788,7 +744,7 @@ def main():
         logger.info("✅ Webhook очищен, старые обновления пропущены")
     except telebot.apihelper.ApiTelegramException as e:
         if "Conflict" in str(e):
-            logger.error("⏳ Конфликт при очистке: другой экземпляр бота запущен")
+            logger.error("⚠️ Конфликт при очистке: другой экземпляр бота запущен")
             logger.error("Завершаем процесс для перезапуска Render")
             sys.exit(1)
     except Exception as e:
@@ -797,33 +753,29 @@ def main():
     time.sleep(2)
     
     try:
+        # Проверка подключения к Telegram
         bot_info = bot.get_me()
         print(f"✅ Подключение к Telegram: @{bot_info.username}")
         
+        # Запуск Flask для health check
         try:
-            port = int(os.environ.get('PORT', 10000))
-            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            result = sock.connect_ex(('127.0.0.1', port))
-            sock.close()
-            
-            if result != 0:
-                flask_thread = Thread(target=run_flask)
-                flask_thread.daemon = True
-                flask_thread.start()
-                logger.info(f"🌐 HTTP сервер запущен на порту {port}")
-            else:
-                logger.warning(f"⚠️ Порт {port} уже занят, Flask не запущен")
+            flask_thread = Thread(target=run_flask)
+            flask_thread.daemon = True
+            flask_thread.start()
+            logger.info(f"🌐 HTTP сервер запущен на порту {os.environ.get('PORT', 10000)}")
         except Exception as e:
             logger.warning(f"⚠️ Не удалось запустить Flask: {e}")
         
         time.sleep(2)
         
         logger.info("🤖 Telegram бот запущен и готов к работе")
+        
+        # Запуск polling
         bot.polling(none_stop=True, timeout=60, skip_pending=True)
         
     except telebot.apihelper.ApiTelegramException as e:
         if "Conflict" in str(e):
-            logger.error("⏳ Конфликт: другой экземпляр бота уже запущен")
+            logger.error("⚠️ Конфликт: другой экземпляр бота уже запущен")
             logger.error("Остановите другой процесс или подождите 30 секунд")
             time.sleep(30)
             main()
