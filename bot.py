@@ -308,24 +308,6 @@ def send_email_with_document(recipient_email: str, asset_type: str, user_name: s
         logger.exception("Полный traceback:")
         return False
 
-# ДИАГНОСТИЧЕСКИЙ ОБРАБОТЧИК - ДОЛЖЕН БЫТЬ ПЕРВЫМ
-@bot.message_handler(func=lambda message: True)
-def debug_all_messages(message):
-    """Диагностика всех сообщений - ПРИОРИТЕТНЫЙ ОБРАБОТЧИК"""
-    logger.info(f"🔍 ЛЮБОЕ СООБЩЕНИЕ:")
-    logger.info(f"   Тип: {message.content_type}")
-    logger.info(f"   От: {message.from_user.first_name}")
-    logger.info(f"   Время: {datetime.now()}")
-    
-    if message.content_type == 'web_app_data':
-        logger.info(f"   🎯 ЭТО WEB_APP_DATA!")
-        logger.info(f"   Данные: {getattr(message, 'web_app_data', 'НЕТ АТРИБУТА')}")
-        if hasattr(message, 'web_app_data') and message.web_app_data:
-            logger.info(f"   Сырые данные: {message.web_app_data.data}")
-    
-    # НЕ ОБРАБАТЫВАЕМ СООБЩЕНИЕ, ПРОСТО ЛОГИРУЕМ
-    return False
-
 @bot.message_handler(commands=['start'])
 def start_command(message):
     """Стартовое сообщение с Web App"""
@@ -752,6 +734,23 @@ def handle_text_messages(message):
             parse_mode='Markdown',
             reply_markup=keyboard
         )
+
+# ДИАГНОСТИЧЕСКИЙ ОБРАБОТЧИК - ДОЛЖЕН БЫТЬ ПОСЛЕДНИМ
+@bot.message_handler(func=lambda message: True)
+def debug_all_messages(message):
+    """Диагностика всех сообщений - ФИНАЛЬНЫЙ ОБРАБОТЧИК"""
+    logger.info(f"🔍 НЕОБРАБОТАННОЕ СООБЩЕНИЕ:")
+    logger.info(f"   Тип: {message.content_type}")
+    logger.info(f"   От: {message.from_user.first_name}")
+    logger.info(f"   Время: {datetime.now()}")
+    logger.info(f"   Текст: {getattr(message, 'text', 'НЕТ ТЕКСТА')}")
+    
+    # Отправляем базовое приветствие для неизвестных команд
+    if hasattr(message, 'text') and message.text.startswith('/'):
+        bot.reply_to(message, "❓ Неизвестная команда. Используйте /start для начала работы.")
+    else:
+        # Для обычных текстовых сообщений перенаправляем в handle_text_messages
+        handle_text_messages(message)
 
 def main():
     """Основная функция запуска бота"""
