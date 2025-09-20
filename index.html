@@ -403,6 +403,13 @@
         tg.ready();
         tg.expand();
         
+        // ДИАГНОСТИКА - выводим информацию о WebApp
+        console.log('🔍 TELEGRAM WEB APP ИНФОРМАЦИЯ:');
+        console.log('TG объект:', window.Telegram.WebApp);
+        console.log('Версия WebApp:', tg.version);
+        console.log('Платформа:', tg.platform);
+        console.log('Готов:', tg.isReady);
+        
         // Данные об активах - ВАЖНО: ключи должны совпадать с bot.py!
         const assets = {
             'бизнес-центр': {
@@ -441,7 +448,7 @@
                 url: 'https://github.com/11021983A/Docky/raw/main/Бизнес_КИ.docx'
             },
             'комплекс-имущества': {
-                icon: '🏗️',
+                icon: '🗗️',
                 title: 'Комплекс имущества',
                 description: 'Имущественные комплексы',
                 filename: 'Бизнес_КИ.docx',
@@ -467,12 +474,14 @@
         
         // Инициализация интерфейса
         function initializeApp() {
+            console.log('🚀 Инициализация приложения...');
             renderAssets();
             
             // Проверяем параметры URL
             const urlParams = new URLSearchParams(window.location.search);
             const assetParam = urlParams.get('asset');
             if (assetParam && assets[assetParam]) {
+                console.log('🎯 Предвыбранный актив:', assetParam);
                 selectAsset(assetParam);
             }
         }
@@ -492,10 +501,13 @@
                 `;
                 grid.appendChild(card);
             });
+            
+            console.log('✅ Активы отрисованы:', Object.keys(assets).length);
         }
         
         // Выбор актива
         function selectAsset(assetKey) {
+            console.log('📌 Выбран актив:', assetKey);
             selectedAsset = assetKey;
             const asset = assets[assetKey];
             
@@ -528,6 +540,7 @@
         function downloadDocument() {
             if (!selectedAsset) return;
             
+            console.log('⬇️ Скачивание документа для актива:', selectedAsset);
             const asset = assets[selectedAsset];
             
             // Создаем ссылку для скачивания
@@ -540,10 +553,13 @@
             document.body.removeChild(link);
             
             // Отправляем данные в бота
-            tg.sendData(JSON.stringify({
+            const downloadData = {
                 action: 'download_completed',
                 asset_type: selectedAsset
-            }));
+            };
+            
+            console.log('📤 ОТПРАВЛЯЕМ ДАННЫЕ О СКАЧИВАНИИ В БОТ:', downloadData);
+            tg.sendData(JSON.stringify(downloadData));
             
             showNotification('Документ загружается...', 'success');
         }
@@ -552,6 +568,7 @@
         function sendToEmail() {
             if (!selectedAsset) return;
             
+            console.log('📧 Открытие модального окна email для актива:', selectedAsset);
             document.getElementById('emailModal').classList.add('active');
             document.getElementById('emailInput').focus();
         }
@@ -566,66 +583,8 @@
         function confirmSendEmail() {
             const email = document.getElementById('emailInput').value.trim();
             
+            console.log('📧 ПОПЫТКА ОТПРАВКИ EMAIL:', email);
+            
             if (!email) {
                 showNotification('Введите email адрес', 'error');
                 return;
-            }
-            
-            if (!validateEmail(email)) {
-                showNotification('Неверный формат email', 'error');
-                return;
-            }
-            
-            if (!selectedAsset) {
-                showNotification('Сначала выберите актив', 'error');
-                return;
-            }
-            
-            // Отладка - показываем что отправляем
-            const dataToSend = {
-                action: 'send_email',
-                asset_type: selectedAsset,
-                email: email
-            };
-            
-            console.log('Отправка данных:', dataToSend);
-            alert('Отправляем:\nАктив: ' + selectedAsset + '\nEmail: ' + email);
-            
-            // Отправляем данные в бота
-            tg.sendData(JSON.stringify(dataToSend));
-            
-            closeEmailModal();
-            showNotification('Документы отправлены', 'success');
-        }
-        
-        // Валидация email
-        function validateEmail(email) {
-            const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            return re.test(email);
-        }
-        
-        // Показ уведомления
-        function showNotification(message, type) {
-            const notification = document.getElementById('notification');
-            notification.textContent = message;
-            notification.className = `notification ${type} active`;
-            
-            setTimeout(() => {
-                notification.classList.remove('active');
-            }, 3000);
-        }
-        
-        // Обработка Enter в поле email
-        document.addEventListener('DOMContentLoaded', () => {
-            document.getElementById('emailInput').addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') {
-                    confirmSendEmail();
-                }
-            });
-        });
-        
-        // Инициализация при загрузке
-        initializeApp();
-    </script>
-</body>
-</html>
