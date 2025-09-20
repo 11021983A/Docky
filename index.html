@@ -26,11 +26,6 @@
             padding: 0 10px;
         }
         
-        /* Убираем заголовок "Запущено в Telegram Web App" */
-        .header {
-            display: none;
-        }
-        
         /* Компактная шапка */
         .main-header {
             background: rgba(255, 255, 255, 0.95);
@@ -94,11 +89,6 @@
             font-size: 14px;
             font-weight: 600;
             line-height: 1.2;
-        }
-        
-        /* Убираем описание для компактности */
-        .asset-description {
-            display: none;
         }
         
         /* Детали актива */
@@ -398,17 +388,36 @@
     <div class="notification" id="notification"></div>
     
     <script>
-        // Инициализация Telegram WebApp
-        const tg = window.Telegram.WebApp;
-        tg.ready();
-        tg.expand();
+        // Безопасная инициализация Telegram WebApp
+        let tg = null;
+        let isTelegramWebApp = false;
         
-        // ДИАГНОСТИКА - выводим информацию о WebApp
-        console.log('🔍 TELEGRAM WEB APP ИНФОРМАЦИЯ:');
-        console.log('TG объект:', window.Telegram.WebApp);
-        console.log('Версия WebApp:', tg.version);
-        console.log('Платформа:', tg.platform);
-        console.log('Готов:', tg.isReady);
+        function initTelegramWebApp() {
+            if (window.Telegram && window.Telegram.WebApp) {
+                tg = window.Telegram.WebApp;
+                isTelegramWebApp = true;
+                tg.ready();
+                tg.expand();
+                
+                console.log('✅ TELEGRAM WEB APP ПОДКЛЮЧЕН:');
+                console.log('Версия WebApp:', tg.version);
+                console.log('Платформа:', tg.platform);
+                console.log('Готов:', tg.isReady);
+            } else {
+                console.log('⚠️ TELEGRAM WEB APP НЕ НАЙДЕН - работаем в режиме браузера');
+                isTelegramWebApp = false;
+            }
+        }
+        
+        // Пытаемся инициализировать сразу
+        initTelegramWebApp();
+        
+        // Если не получилось, ждем загрузки скрипта
+        if (!isTelegramWebApp) {
+            setTimeout(() => {
+                initTelegramWebApp();
+            }, 1000);
+        }
         
         // Данные об активах - ВАЖНО: ключи должны совпадать с bot.py!
         const assets = {
@@ -448,7 +457,7 @@
                 url: 'https://github.com/11021983A/Docky/raw/main/Бизнес_КИ.docx'
             },
             'комплекс-имущества': {
-                icon: '🗗️',
+                icon: '🏗️',
                 title: 'Комплекс имущества',
                 description: 'Имущественные комплексы',
                 filename: 'Бизнес_КИ.docx',
@@ -552,14 +561,19 @@
             link.click();
             document.body.removeChild(link);
             
-            // Отправляем данные в бота
+            // Отправляем данные в бота (если доступен Telegram WebApp)
             const downloadData = {
                 action: 'download_completed',
                 asset_type: selectedAsset
             };
             
-            console.log('📤 ОТПРАВЛЯЕМ ДАННЫЕ О СКАЧИВАНИИ В БОТ:', downloadData);
-            tg.sendData(JSON.stringify(downloadData));
+            console.log('📤 ОТПРАВЛЯЕМ ДАННЫЕ О СКАЧИВАНИИ:', downloadData);
+            
+            if (isTelegramWebApp && tg) {
+                tg.sendData(JSON.stringify(downloadData));
+            } else {
+                console.log('ℹ️ Telegram WebApp недоступен - данные не отправлены');
+            }
             
             showNotification('Документ загружается...', 'success');
         }
@@ -579,7 +593,7 @@
             document.getElementById('emailInput').value = '';
         }
         
-        // Отправка на email с дополнительной отладкой
+        // Отправка на email
         function confirmSendEmail() {
             const email = document.getElementById('emailInput').value.trim();
             
@@ -588,3 +602,81 @@
             if (!email) {
                 showNotification('Введите email адрес', 'error');
                 return;
+            }
+            
+            // Простая валидация email
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+                showNotification('Неверный формат email', 'error');
+                return;
+            }
+            
+            const emailData = {
+                action: 'send_email',
+                email: email,
+                asset_type: selectedAsset
+            };
+            
+            console.log('📤 ОТПРАВЛЯЕМ ДАННЫЕ EMAIL:', emailData);
+            
+            if (isTelegramWebApp && tg) {
+                tg.sendData(JSON.stringify(emailData));
+                closeEmailModal();
+                showNotification('Отправляем документы на ' + email, 'success');
+            } else {
+                console.log('ℹ️ Telegram WebApp недоступен - эмуляция отправки');
+                closeEmailModal();
+                showNotification('Режим браузера: email функция недоступна', 'error');
+            }
+        }
+        
+        // Показ уведомлений
+        function showNotification(message, type = 'success') {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.className = `notification active ${type}`;
+            
+            setTimeout(() => {
+                notification.classList.remove('active');
+            }, 3000);
+        }
+        
+        // Обработка нажатия Enter в поле email
+        document.addEventListener('DOMContentLoaded', function() {
+            const emailInput = document.getElementById('emailInput');
+            if (emailInput) {
+                emailInput.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        confirmSendEmail();
+                    }
+                });
+            }
+        });
+        
+        // Закрытие модального окна по клику вне его
+        document.getElementById('emailModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeEmailModal();
+            }
+        });
+        
+        // ЗАПУСК ПРИЛОЖЕНИЯ
+        console.log('🔥 ЗАПУСКАЕМ ИНИЦИАЛИЗАЦИЮ...');
+        
+        // Ждем загрузки DOM
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializeApp);
+        } else {
+            initializeApp();
+        }
+        
+        // Дополнительный запуск через setTimeout для надежности
+        setTimeout(() => {
+            if (document.getElementById('assetsGrid').children.length === 0) {
+                console.log('⚠️ Активы не отрисованы, повторная попытка...');
+                initializeApp();
+            }
+        }, 500);
+    </script>
+</body>
+</html>
