@@ -56,7 +56,7 @@ USE_SSL = os.getenv('USE_SSL', 'true').lower() == 'true'  # Добавлена �
 
 # Проверяем обязательные параметры
 if not BOT_TOKEN:
-    print("❌ ОШИБКА: Не найден BOT_TOKEN в файле .env")
+    print("⌛ ОШИБКА: Не найден BOT_TOKEN в файле .env")
     print("💡 Добавьте в Environment Variables: BOT_TOKEN")
     exit()
 
@@ -130,7 +130,7 @@ ASSETS = {
         'url': 'https://github.com/11021983A/Docky/raw/main/Бизнес_КИ.docx'
     },
     'комплекс-имущества': {
-        'icon': '🏗️',
+        'icon': '🗗️',
         'title': 'Комплекс имущества',
         'description': 'Имущественные комплексы',
         'filename': 'Бизнес_КИ.docx',
@@ -317,19 +317,19 @@ def send_email_with_document(recipient_email: str, asset_type: str, user_name: s
             return True
             
         except smtplib.SMTPAuthenticationError as e:
-            logger.error(f"❌ Ошибка аутентификации SMTP: {e}")
+            logger.error(f"⌛ Ошибка аутентификации SMTP: {e}")
             logger.error("ПРОВЕРЬТЕ: EMAIL_PASSWORD должен быть паролем приложения Mail.ru, НЕ обычным паролем!")
             logger.error("Создайте пароль приложения: Mail.ru → Настройки → Безопасность → Пароли приложений")
         except smtplib.SMTPServerDisconnected as e:
-            logger.error(f"❌ Сервер разорвал соединение: {e}")
+            logger.error(f"⌛ Сервер разорвал соединение: {e}")
             logger.error("Возможно, сервер блокирует подключение с Render")
         except smtplib.SMTPException as e:
-            logger.error(f"❌ SMTP ошибка: {e}")
+            logger.error(f"⌛ SMTP ошибка: {e}")
         
         return False
         
     except Exception as e:
-        logger.error(f"❌ Общая ошибка отправки email: {e}")
+        logger.error(f"⌛ Общая ошибка отправки email: {e}")
         logger.exception("Полный traceback:")
         return False
 
@@ -495,15 +495,15 @@ def handle_web_app_data(message):
             logger.info(f"Запрос на отправку email: {email}, актив: {asset_type}")
             
             if not email:
-                bot.reply_to(message, "❌ Email адрес не указан")
+                bot.reply_to(message, "⌛ Email адрес не указан")
                 return
             
             if not validate_email(email):
-                bot.reply_to(message, f"❌ Неверный формат email адреса: {email}")
+                bot.reply_to(message, f"⌛ Неверный формат email адреса: {email}")
                 return
             
             if asset_type not in ASSETS:
-                bot.reply_to(message, f"❌ Неизвестный тип актива: {asset_type}")
+                bot.reply_to(message, f"⌛ Неизвестный тип актива: {asset_type}")
                 logger.error(f"Актив '{asset_type}' не найден. Доступные: {list(ASSETS.keys())}")
                 return
             
@@ -551,7 +551,7 @@ def handle_web_app_data(message):
             else:
                 bot.send_message(
                     message.chat.id,
-                    f"❌ **Ошибка отправки email**\n\n"
+                    f"⌛ **Ошибка отправки email**\n\n"
                     f"Не удалось отправить документы для {asset['icon']} {asset['title']} на адрес {email}.\n\n"
                     f"📄 Попробуйте:\n"
                     f"• Проверить правильность email\n"
@@ -572,19 +572,15 @@ def handle_web_app_data(message):
 
 📄 **Актив:** {asset['icon']} {asset['title']}
 📂 **Файл:** {asset['filename']}
-
-💡 **Нужна помощь?** Обращайтесь к нашим специалистам!
 """
                 
-                # Кнопки для дополнительных действий
+                # Кнопка только для дополнительных действий (убрали кнопку контактов)
                 keyboard = types.InlineKeyboardMarkup()
                 webapp_btn = types.InlineKeyboardButton(
                     "Выбрать другой актив", 
                     web_app=types.WebAppInfo(url=WEBAPP_URL)
                 )
-                contact_btn = types.InlineKeyboardButton("📞 Контакты", callback_data="contacts")
                 keyboard.add(webapp_btn)
-                keyboard.add(contact_btn)
                 
                 bot.reply_to(
                     message, 
@@ -596,7 +592,7 @@ def handle_web_app_data(message):
     except Exception as e:
         logger.error(f"Ошибка обработки Web App данных: {e}")
         logger.exception("Полный traceback:")
-        bot.reply_to(message, "❌ Произошла ошибка при обработке запроса")
+        bot.reply_to(message, "⌛ Произошла ошибка при обработке запроса")
 
 @bot.message_handler(commands=['test_send'])
 def test_send_command(message):
@@ -608,7 +604,7 @@ def test_send_command(message):
     
     test_email = parts[1]
     if not validate_email(test_email):
-        bot.reply_to(message, f"❌ Неверный формат email: {test_email}")
+        bot.reply_to(message, f"⌛ Неверный формат email: {test_email}")
         return
     
     # Симулируем данные от веб-приложения
@@ -631,14 +627,16 @@ def test_send_command(message):
     if success:
         bot.reply_to(message, f"✅ Письмо отправлено на {test_email}!")
     else:
-        bot.reply_to(message, f"❌ Ошибка отправки на {test_email}")
+        bot.reply_to(message, f"⌛ Ошибка отправки на {test_email}")
+
+@bot.message_handler(commands=['test_email'])
 def test_email_command(message):
     """Команда для тестирования отправки email"""
     user_name = message.from_user.first_name or "Тестовый пользователь"
     
     # Проверяем настройки email
     if not EMAIL_USER or not EMAIL_PASSWORD:
-        bot.reply_to(message, "❌ Email настройки не заданы в переменных окружения")
+        bot.reply_to(message, "⌛ Email настройки не заданы в переменных окружения")
         return
     
     # Проверяем, есть ли email в команде
@@ -646,13 +644,13 @@ def test_email_command(message):
     if len(parts) > 1:
         test_email = parts[1]
         if not validate_email(test_email):
-            bot.reply_to(message, f"❌ Неверный формат email: {test_email}")
+            bot.reply_to(message, f"⌛ Неверный формат email: {test_email}")
             return
     else:
         test_email = EMAIL_USER  # По умолчанию на свой email
         bot.reply_to(message, "💡 Используйте: /test_email адрес@почта.ru для отправки на конкретный адрес")
     
-    bot.reply_to(message, f"🔄 Отправляю тестовое письмо на {test_email}...")
+    bot.reply_to(message, f"📄 Отправляю тестовое письмо на {test_email}...")
     
     # ВАЖНО: используем test_email, а не EMAIL_USER!
     success = send_email_with_document(test_email, 'бизнес-центр', user_name)
@@ -660,7 +658,7 @@ def test_email_command(message):
     if success:
         bot.reply_to(message, f"✅ Тестовое письмо успешно отправлено на {test_email}!\n📬 Проверьте почту и папку Спам.")
     else:
-        bot.reply_to(message, f"❌ Ошибка отправки на {test_email}.\n📋 Проверьте логи для деталей.")
+        bot.reply_to(message, f"⌛ Ошибка отправки на {test_email}.\n📋 Проверьте логи для деталей.")
 
 @bot.message_handler(func=lambda message: True)
 def handle_text_messages(message):
@@ -770,8 +768,8 @@ def main():
     """Основная функция запуска бота"""
     logger.info(f"🚀 Запуск Telegram Web App бота 'Доки' [Process: {PROCESS_ID}]")
     logger.info(f"📱 Web App URL: {WEBAPP_URL}")
-    logger.info(f"📧 Email: {'✅ Настроен' if EMAIL_USER and EMAIL_PASSWORD else '❌ Не настроен'}")
-    logger.info(f"👮 Админ: {'✅ Настроен' if ADMIN_CHAT_ID else '❌ Не настроен'}")
+    logger.info(f"📧 Email: {'✅ Настроен' if EMAIL_USER and EMAIL_PASSWORD else '⌛ Не настроен'}")
+    logger.info(f"👮 Админ: {'✅ Настроен' if ADMIN_CHAT_ID else '⌛ Не настроен'}")
     
     print("=" * 50)
     print(f"🤖 TELEGRAM WEB APP БОТ 'ДОКИ' ЗАПУЩЕН [{PROCESS_ID}]")
@@ -804,7 +802,7 @@ def main():
         logger.info("✅ Webhook очищен, старые обновления пропущены")
     except telebot.apihelper.ApiTelegramException as e:
         if "Conflict" in str(e):
-            logger.error("❌ Конфликт при очистке: другой экземпляр бота запущен")
+            logger.error("⌛ Конфликт при очистке: другой экземпляр бота запущен")
             logger.error("Завершаем процесс для перезапуска Render")
             sys.exit(1)
     except Exception as e:
@@ -850,7 +848,7 @@ def main():
         
     except telebot.apihelper.ApiTelegramException as e:
         if "Conflict" in str(e):
-            logger.error("❌ Конфликт: другой экземпляр бота уже запущен")
+            logger.error("⌛ Конфликт: другой экземпляр бота уже запущен")
             logger.error("Остановите другой процесс или подождите 30 секунд")
             import time
             time.sleep(30)
@@ -873,7 +871,7 @@ def main():
             except:
                 pass
         
-        # Пытаемся перезапустить через 5 секунд
+        # Пытаемся перезапуститься через 5 секунд
         print("⚠️ Попытка перезапуска через 5 секунд...")
         import time
         time.sleep(5)
