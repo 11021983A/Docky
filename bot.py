@@ -129,7 +129,7 @@ ASSETS = {
         'url': 'https://github.com/11021983A/Docky/raw/main/Бизнес_КИ.docx'
     },
     'комплекс-имущества': {
-        'icon': '🗗️',
+        'icon': '🏗️',
         'title': 'Комплекс имущества',
         'description': 'Имущественные комплексы',
         'filename': 'Бизнес_КИ.docx',
@@ -463,21 +463,189 @@ def handle_callback_query(call):
 @bot.message_handler(content_types=['web_app_data'])
 def handle_web_app_data(message):
     """Обработка данных от Web App"""
-    logger.info("🔔 ВЫЗВАН ОБРАБОТЧИК WEB_APP_DATA")
+    logger.info("📢 ВЫЗВАН ОБРАБОТЧИК WEB_APP_DATA")
     logger.info(f"   📱 Тип сообщения: {message.content_type}")
     logger.info(f"   👤 От пользователя: {message.from_user.first_name} (ID: {message.from_user.id})")
     
     try:
         if not hasattr(message, 'web_app_data') or not message.web_app_data:
             logger.error("❌ НЕТ ДАННЫХ WEB_APP_DATA В СООБЩЕНИИ")
-            bot.reply_to(message, f"📄 Отправляю тестовое письмо на {test_email}...")
+            bot.reply_to(message, "⏳ Не получены данные от веб-приложения")
+            return
+        
+        if not hasattr(message.web_app_data, 'data') or not message.web_app_data.data:
+            logger.error("❌ ПУСТЫЕ ДАННЫЕ В WEB_APP_DATA")
+            bot.reply_to(message, "⏳ Пустые данные от веб-приложения")
+            return
+        
+        logger.info(f"   📋 Сырые данные: {message.web_app_data.data}")
+        
+        web_app_data = json.loads(message.web_app_data.data)
+        action = web_app_data.get('action')
+        
+        user_id = message.from_user.id
+        user_name = message.from_user.first_name or "Пользователь"
+        
+        logger.info(f"📱 ПОЛУЧЕНЫ ДАННЫЕ ОТ WEB APP:")
+        logger.info(f"   👤 Пользователь: {user_name} (ID: {user_id})")
+        logger.info(f"   🎯 Действие: {action}")
+        logger.info(f"   📋 Полные данные: {web_app_data}")
+        
+        if action == 'send_email':
+            email = web_app_data.get('email')
+            asset_type = web_app_data.get('asset_type')
+            
+            logger.info(f"📧 ЗАПРОС НА ОТПРАВКУ EMAIL:")
+            logger.info(f"   📬 Email: {email}")
+            logger.info(f"   📄 Актив: {asset_type}")
+            
+            if not email:
+                logger.error("❌ Email адрес не указан в данных")
+                bot.reply_to(message, "⏳ Email адрес не указан")
+                return
+            
+            if not validate_email(email):
+                logger.error(f"❌ Неверный формат email: {email}")
+                bot.reply_to(message, f"⏳ Неверный формат email адреса: {email}")
+                return
+            
+            if asset_type not in ASSETS:
+                logger.error(f"❌ Неизвестный актив: {asset_type}")
+                logger.error(f"   Доступные активы: {list(ASSETS.keys())}")
+                bot.reply_to(message, f"⏳ Неизвестный тип актива: {asset_type}")
+                return
+            
+            logger.info(f"📤 Отправляем уведомление пользователю о начале отправки")
+            bot.reply_to(message, f"📧 Письмо направлено на {email}")
+            
+            logger.info(f"🔮 НАЧИНАЕМ ОТПРАВКУ EMAIL:")
+            logger.info(f"   📬 Получатель: {email}")
+            logger.info(f"   📄 Тип актива: {asset_type}")
+            logger.info(f"   👤 Имя отправителя: {user_name}")
+            
+            success = send_email_with_document(email, asset_type, user_name)
+            
+            asset = ASSETS[asset_type]
+            
+            if success:
+                logger.info(f"✅ EMAIL УСПЕШНО ОТПРАВЛЕН на {email}")
+                response_text = f"""
+✅ **Документы отправлены!**
+
+📧 **Email:** {email}
+📄 **Актив:** {asset['icon']} {asset['title']}
+
+📬 Проверьте входящие письма и папку "Спам".
+
+📄 Нужны документы для другого актива? Откройте каталог снова!
+"""
+                keyboard = types.InlineKeyboardMarkup()
+                webapp_btn = types.InlineKeyboardButton(
+                    "Выберите другой актив", 
+                    web_app=types.WebAppInfo(url=WEBAPP_URL)
+                )
+                keyboard.add(webapp_btn)
+                
+                bot.send_message(
+                    message.chat.id, 
+                    response_text, 
+                    parse_mode='Markdown',
+                    reply_markup=keyboard
+                )
+                
+                if ADMIN_CHAT_ID:
+                    admin_msg = f"📧 Email отправлен\n👤 {user_name} (@{message.from_user.username})\n📄 {asset['title']}\n📧 {email}"
+                    try:
+                        bot.send_message(ADMIN_CHAT_ID, admin_msg)
+                        logger.info(f"📨 Уведомление админу отправлено")
+                    except Exception as e:
+                        logger.error(f"❌ Ошибка отправки уведомления админу: {e}")
+            else:
+                logger.error(f"❌ ОШИБКА ОТПРАВКИ EMAIL на {email}")
+                bot.send_message(
+                    message.chat.id,
+                    f"⏳ **Ошибка отправки email**\n\n"
+                    f"Не удалось отправить документы для {asset['icon']} {asset['title']} на адрес {email}.\n\n"
+                    f"📄 Попробуйте:\n"
+                    f"• Проверить правильность email\n"
+                    f"• Скачать документ и отправить вручную\n"
+                    f"• Написать нам напрямую: {EMAIL_USER}\n\n"
+                    f"💡 Используйте команду /test_email для проверки системы",
+                    parse_mode='Markdown'
+                )
+        
+        elif action == 'download_completed':
+            asset_type = web_app_data.get('asset_type')
+            logger.info(f"📥 СКАЧИВАНИЕ ЗАВЕРШЕНО:")
+            logger.info(f"   📄 Актив: {asset_type}")
+            logger.info(f"   👤 Пользователь: {user_name}")
+            
+            if asset_type in ASSETS:
+                asset = ASSETS[asset_type]
+                
+                response_text = f"""
+✅ **Документ скачан!**
+
+📄 **Актив:** {asset['icon']} {asset['title']}
+📂 **Файл:** {asset['filename']}
+"""
+                
+                keyboard = types.InlineKeyboardMarkup()
+                webapp_btn = types.InlineKeyboardButton(
+                    "Выбрать другой актив", 
+                    web_app=types.WebAppInfo(url=WEBAPP_URL)
+                )
+                keyboard.add(webapp_btn)
+                
+                bot.reply_to(
+                    message, 
+                    response_text, 
+                    parse_mode='Markdown',
+                    reply_markup=keyboard
+                )
+            else:
+                logger.error(f"❌ Неизвестный актив при скачивании: {asset_type}")
+        
+        else:
+            logger.warning(f"⚠️ Неизвестное действие от веб-приложения: {action}")
+            logger.warning(f"   Полученные данные: {web_app_data}")
+        
+    except json.JSONDecodeError as e:
+        logger.error(f"❌ Ошибка парсинга JSON от Web App: {e}")
+        logger.error(f"   Сырые данные: {message.web_app_data.data if hasattr(message, 'web_app_data') and message.web_app_data else 'НЕТ ДАННЫХ'}")
+        bot.reply_to(message, "⏳ Ошибка обработки данных от веб-приложения")
+    except Exception as e:
+        logger.error(f"❌ Общая ошибка обработки Web App данных: {e}")
+        logger.exception("📋 Полный traceback:")
+        bot.reply_to(message, "⏳ Произошла ошибка при обработке запроса")
+
+@bot.message_handler(commands=['test_email'])
+def test_email_command(message):
+    """Команда для тестирования отправки email"""
+    user_name = message.from_user.first_name or "Тестовый пользователь"
+    
+    if not EMAIL_USER or not EMAIL_PASSWORD:
+        bot.reply_to(message, "⏳ Email настройки не заданы в переменных окружения")
+        return
+    
+    parts = message.text.split()
+    if len(parts) > 1:
+        test_email = parts[1]
+        if not validate_email(test_email):
+            bot.reply_to(message, f"⏳ Неверный формат email: {test_email}")
+            return
+    else:
+        test_email = EMAIL_USER
+        bot.reply_to(message, "💡 Используйте: /test_email адрес@почта.ru для отправки на конкретный адрес")
+    
+    bot.reply_to(message, f"📄 Отправляю тестовое письмо на {test_email}...")
     
     success = send_email_with_document(test_email, 'бизнес-центр', user_name)
     
     if success:
         bot.reply_to(message, f"✅ Тестовое письмо успешно отправлено на {test_email}!\n📬 Проверьте почту и папку Спам.")
     else:
-        bot.reply_to(message, f"⌛ Ошибка отправки на {test_email}.\n📋 Проверьте логи для деталей.")
+        bot.reply_to(message, f"⏳ Ошибка отправки на {test_email}.\n📋 Проверьте логи для деталей.")
 
 @bot.message_handler(func=lambda message: True)
 def handle_text_messages(message):
@@ -488,7 +656,7 @@ def handle_text_messages(message):
     logger.info(f"   📄 Текст: {message.text if hasattr(message, 'text') else 'НЕТ ТЕКСТА'}")
     
     if message.content_type == 'web_app_data':
-        logger.info("🔄 Это сообщение web_app_data, должно обработаться отдельным обработчиком")
+        logger.info("📄 Это сообщение web_app_data, должно обработаться отдельным обработчиком")
         return
     
     user_message = message.text.lower() if hasattr(message, 'text') and message.text else ""
@@ -589,8 +757,8 @@ def main():
     """Основная функция запуска бота"""
     logger.info(f"🚀 Запуск Telegram Web App бота 'Доки' [Process: {PROCESS_ID}]")
     logger.info(f"📱 Web App URL: {WEBAPP_URL}")
-    logger.info(f"📧 Email: {'✅ Настроен' if EMAIL_USER and EMAIL_PASSWORD else '⌛ Не настроен'}")
-    logger.info(f"👮 Админ: {'✅ Настроен' if ADMIN_CHAT_ID else '⌛ Не настроен'}")
+    logger.info(f"📧 Email: {'✅ Настроен' if EMAIL_USER and EMAIL_PASSWORD else '⏳ Не настроен'}")
+    logger.info(f"👮 Админ: {'✅ Настроен' if ADMIN_CHAT_ID else '⏳ Не настроен'}")
     
     print("=" * 50)
     print(f"🤖 TELEGRAM WEB APP БОТ 'ДОКИ' ЗАПУЩЕН [{PROCESS_ID}]")
@@ -598,7 +766,7 @@ def main():
     print(f"📱 Web App: {WEBAPP_URL}")
     print(f"📧 Email: {EMAIL_USER}")
     print(f"🌐 Health Check: http://localhost:{os.environ.get('PORT', 10000)}")
-    print(f"📧 Функции:")
+    print(f"🔧 Функции:")
     print("   ✅ Telegram Web App интеграция")
     print("   ✅ Отправка email через Mail.ru")
     print("   ✅ HTTP Health Check для Render")
@@ -621,7 +789,7 @@ def main():
         logger.info("✅ Webhook очищен, старые обновления пропущены")
     except telebot.apihelper.ApiTelegramException as e:
         if "Conflict" in str(e):
-            logger.error("⌛ Конфликт при очистке: другой экземпляр бота запущен")
+            logger.error("⏳ Конфликт при очистке: другой экземпляр бота запущен")
             logger.error("Завершаем процесс для перезапуска Render")
             sys.exit(1)
     except Exception as e:
@@ -656,7 +824,7 @@ def main():
         
     except telebot.apihelper.ApiTelegramException as e:
         if "Conflict" in str(e):
-            logger.error("⌛ Конфликт: другой экземпляр бота уже запущен")
+            logger.error("⏳ Конфликт: другой экземпляр бота уже запущен")
             logger.error("Остановите другой процесс или подождите 30 секунд")
             time.sleep(30)
             main()
@@ -682,172 +850,4 @@ def main():
         main()
 
 if __name__ == '__main__':
-    main()_to(message, "⌛ Не получены данные от веб-приложения")
-            return
-        
-        if not hasattr(message.web_app_data, 'data') or not message.web_app_data.data:
-            logger.error("❌ ПУСТЫЕ ДАННЫЕ В WEB_APP_DATA")
-            bot.reply_to(message, "⌛ Пустые данные от веб-приложения")
-            return
-        
-        logger.info(f"   📋 Сырые данные: {message.web_app_data.data}")
-        
-        web_app_data = json.loads(message.web_app_data.data)
-        action = web_app_data.get('action')
-        
-        user_id = message.from_user.id
-        user_name = message.from_user.first_name or "Пользователь"
-        
-        logger.info(f"📱 ПОЛУЧЕНЫ ДАННЫЕ ОТ WEB APP:")
-        logger.info(f"   👤 Пользователь: {user_name} (ID: {user_id})")
-        logger.info(f"   🎯 Действие: {action}")
-        logger.info(f"   📋 Полные данные: {web_app_data}")
-        
-        if action == 'send_email':
-            email = web_app_data.get('email')
-            asset_type = web_app_data.get('asset_type')
-            
-            logger.info(f"📧 ЗАПРОС НА ОТПРАВКУ EMAIL:")
-            logger.info(f"   📬 Email: {email}")
-            logger.info(f"   📄 Актив: {asset_type}")
-            
-            if not email:
-                logger.error("❌ Email адрес не указан в данных")
-                bot.reply_to(message, "⌛ Email адрес не указан")
-                return
-            
-            if not validate_email(email):
-                logger.error(f"❌ Неверный формат email: {email}")
-                bot.reply_to(message, f"⌛ Неверный формат email адреса: {email}")
-                return
-            
-            if asset_type not in ASSETS:
-                logger.error(f"❌ Неизвестный актив: {asset_type}")
-                logger.error(f"   Доступные активы: {list(ASSETS.keys())}")
-                bot.reply_to(message, f"⌛ Неизвестный тип актива: {asset_type}")
-                return
-            
-            logger.info(f"📤 Отправляем уведомление пользователю о начале отправки")
-            bot.reply_to(message, f"📧 Письмо направлено на {email}")
-            
-            logger.info(f"📮 НАЧИНАЕМ ОТПРАВКУ EMAIL:")
-            logger.info(f"   📬 Получатель: {email}")
-            logger.info(f"   📄 Тип актива: {asset_type}")
-            logger.info(f"   👤 Имя отправителя: {user_name}")
-            
-            success = send_email_with_document(email, asset_type, user_name)
-            
-            asset = ASSETS[asset_type]
-            
-            if success:
-                logger.info(f"✅ EMAIL УСПЕШНО ОТПРАВЛЕН на {email}")
-                response_text = f"""
-✅ **Документы отправлены!**
-
-📧 **Email:** {email}
-📄 **Актив:** {asset['icon']} {asset['title']}
-
-📬 Проверьте входящие письма и папку "Спам".
-
-📄 Нужны документы для другого актива? Откройте каталог снова!
-"""
-                keyboard = types.InlineKeyboardMarkup()
-                webapp_btn = types.InlineKeyboardButton(
-                    "Выберите другой актив", 
-                    web_app=types.WebAppInfo(url=WEBAPP_URL)
-                )
-                keyboard.add(webapp_btn)
-                
-                bot.send_message(
-                    message.chat.id, 
-                    response_text, 
-                    parse_mode='Markdown',
-                    reply_markup=keyboard
-                )
-                
-                if ADMIN_CHAT_ID:
-                    admin_msg = f"📧 Email отправлен\n👤 {user_name} (@{message.from_user.username})\n📄 {asset['title']}\n📧 {email}"
-                    try:
-                        bot.send_message(ADMIN_CHAT_ID, admin_msg)
-                        logger.info(f"📨 Уведомление админу отправлено")
-                    except Exception as e:
-                        logger.error(f"❌ Ошибка отправки уведомления админу: {e}")
-            else:
-                logger.error(f"❌ ОШИБКА ОТПРАВКИ EMAIL на {email}")
-                bot.send_message(
-                    message.chat.id,
-                    f"⌛ **Ошибка отправки email**\n\n"
-                    f"Не удалось отправить документы для {asset['icon']} {asset['title']} на адрес {email}.\n\n"
-                    f"📄 Попробуйте:\n"
-                    f"• Проверить правильность email\n"
-                    f"• Скачать документ и отправить вручную\n"
-                    f"• Написать нам напрямую: {EMAIL_USER}\n\n"
-                    f"💡 Используйте команду /test_email для проверки системы",
-                    parse_mode='Markdown'
-                )
-        
-        elif action == 'download_completed':
-            asset_type = web_app_data.get('asset_type')
-            logger.info(f"📥 СКАЧИВАНИЕ ЗАВЕРШЕНО:")
-            logger.info(f"   📄 Актив: {asset_type}")
-            logger.info(f"   👤 Пользователь: {user_name}")
-            
-            if asset_type in ASSETS:
-                asset = ASSETS[asset_type]
-                
-                response_text = f"""
-✅ **Документ скачан!**
-
-📄 **Актив:** {asset['icon']} {asset['title']}
-📂 **Файл:** {asset['filename']}
-"""
-                
-                keyboard = types.InlineKeyboardMarkup()
-                webapp_btn = types.InlineKeyboardButton(
-                    "Выбрать другой актив", 
-                    web_app=types.WebAppInfo(url=WEBAPP_URL)
-                )
-                keyboard.add(webapp_btn)
-                
-                bot.reply_to(
-                    message, 
-                    response_text, 
-                    parse_mode='Markdown',
-                    reply_markup=keyboard
-                )
-            else:
-                logger.error(f"❌ Неизвестный актив при скачивании: {asset_type}")
-        
-        else:
-            logger.warning(f"⚠️ Неизвестное действие от веб-приложения: {action}")
-            logger.warning(f"   Полученные данные: {web_app_data}")
-        
-    except json.JSONDecodeError as e:
-        logger.error(f"❌ Ошибка парсинга JSON от Web App: {e}")
-        logger.error(f"   Сырые данные: {message.web_app_data.data if hasattr(message, 'web_app_data') and message.web_app_data else 'НЕТ ДАННЫХ'}")
-        bot.reply_to(message, "⌛ Ошибка обработки данных от веб-приложения")
-    except Exception as e:
-        logger.error(f"❌ Общая ошибка обработки Web App данных: {e}")
-        logger.exception("📋 Полный traceback:")
-        bot.reply_to(message, "⌛ Произошла ошибка при обработке запроса")
-
-@bot.message_handler(commands=['test_email'])
-def test_email_command(message):
-    """Команда для тестирования отправки email"""
-    user_name = message.from_user.first_name or "Тестовый пользователь"
-    
-    if not EMAIL_USER or not EMAIL_PASSWORD:
-        bot.reply_to(message, "⌛ Email настройки не заданы в переменных окружения")
-        return
-    
-    parts = message.text.split()
-    if len(parts) > 1:
-        test_email = parts[1]
-        if not validate_email(test_email):
-            bot.reply_to(message, f"⌛ Неверный формат email: {test_email}")
-            return
-    else:
-        test_email = EMAIL_USER
-        bot.reply_to(message, "💡 Используйте: /test_email адрес@почта.ru для отправки на конкретный адрес")
-    
-    bot.reply
+    main()
