@@ -223,21 +223,10 @@ def send_email_with_document(recipient_email: str, asset_type: str, user_name: s
                         <li><strong>Файл:</strong> {asset['filename']}</li>
                     </ul>
                 </div>
-                
-                <p><strong>Важные рекомендации:</strong></p>
-                <ul>
-                    <li>Проверьте актуальность всех документов</li>
-                    <li>Убедитесь в правильности заполнения</li>
-                    <li>При возникновении вопросов обращайтесь к нашим специалистам</li>
-                </ul>
-                
-                <p>Желаем успешного оформления!</p>
             </div>
             
             <div class="footer">
                 <p>Это письмо было отправлено автоматически через Telegram бота "Доки"</p>
-                <p>По вопросам: {EMAIL_USER} | Telegram: @your_docs_bot</p>
-                <p>© 2024 Банковская залоговая служба</p>
             </div>
         </body>
         </html>
@@ -476,7 +465,24 @@ def handle_callback_query(call):
 @bot.message_handler(content_types=['web_app_data'])
 def handle_web_app_data(message):
     """Обработка данных от Web App"""
+    logger.info("🔔 ВЫЗВАН ОБРАБОТЧИК WEB_APP_DATA")
+    logger.info(f"   📱 Тип сообщения: {message.content_type}")
+    logger.info(f"   👤 От пользователя: {message.from_user.first_name} (ID: {message.from_user.id})")
+    
     try:
+        # Проверяем наличие данных
+        if not hasattr(message, 'web_app_data') or not message.web_app_data:
+            logger.error("❌ НЕТ ДАННЫХ WEB_APP_DATA В СООБЩЕНИИ")
+            bot.reply_to(message, "⌛ Не получены данные от веб-приложения")
+            return
+        
+        if not hasattr(message.web_app_data, 'data') or not message.web_app_data.data:
+            logger.error("❌ ПУСТЫЕ ДАННЫЕ В WEB_APP_DATA")
+            bot.reply_to(message, "⌛ Пустые данные от веб-приложения")
+            return
+        
+        logger.info(f"   📋 Сырые данные: {message.web_app_data.data}")
+        
         # Получаем данные от веб-приложения
         web_app_data = json.loads(message.web_app_data.data)
         action = web_app_data.get('action')
@@ -516,7 +522,7 @@ def handle_web_app_data(message):
             
             # Отправляем уведомление пользователю
             logger.info(f"📤 Отправляем уведомление пользователю о начале отправки")
-            bot.reply_to(message, f"📧 Отправляю документы на {email}...")
+            bot.reply_to(message, f"📧 Письмо направлено на {email}")
             
             # Отправляем документ
             logger.info(f"📮 НАЧИНАЕМ ОТПРАВКУ EMAIL:")
@@ -613,10 +619,11 @@ def handle_web_app_data(message):
         
         else:
             logger.warning(f"⚠️ Неизвестное действие от веб-приложения: {action}")
+            logger.warning(f"   Полученные данные: {web_app_data}")
         
     except json.JSONDecodeError as e:
         logger.error(f"❌ Ошибка парсинга JSON от Web App: {e}")
-        logger.error(f"   Сырые данные: {message.web_app_data.data}")
+        logger.error(f"   Сырые данные: {message.web_app_data.data if hasattr(message, 'web_app_data') and message.web_app_data else 'НЕТ ДАННЫХ'}")
         bot.reply_to(message, "⌛ Ошибка обработки данных от веб-приложения")
     except Exception as e:
         logger.error(f"❌ Общая ошибка обработки Web App данных: {e}")
@@ -692,7 +699,17 @@ def test_email_command(message):
 @bot.message_handler(func=lambda message: True)
 def handle_text_messages(message):
     """Обработка текстовых сообщений"""
-    user_message = message.text.lower()
+    logger.info(f"📨 ПОЛУЧЕНО СООБЩЕНИЕ:")
+    logger.info(f"   👤 От: {message.from_user.first_name} (ID: {message.from_user.id})")
+    logger.info(f"   📝 Тип: {message.content_type}")
+    logger.info(f"   📄 Текст: {message.text if hasattr(message, 'text') else 'НЕТ ТЕКСТА'}")
+    
+    # Проверяем, не является ли это сообщением с web_app_data
+    if message.content_type == 'web_app_data':
+        logger.info("🔄 Это сообщение web_app_data, перенаправляем в специальный обработчик")
+        return
+    
+    user_message = message.text.lower() if hasattr(message, 'text') and message.text else ""
     
     # Поиск актива по ключевым словам
     found_assets = []
@@ -766,6 +783,58 @@ def handle_text_messages(message):
 🤖 Понял вас не совсем точно.
 
 📋 **Доступно {len(ASSETS)} типов активов:**
+"""
+        
+        # Показываем первые 4 актива
+        for i, (_, asset_data) in enumerate(list(ASSETS.items())[:4]):
+            response_text += f"{asset_data['icon']} {asset_data['title']}\n"
+        
+        if len(ASSETS) > 4:
+            response_text += f"...и еще {len(ASSETS) - 4}\n"
+        
+        response_text += "\n💡 **Откройте каталог для удобного выбора:**"
+        
+        keyboard = types.InlineKeyboardMarkup()
+        webapp_btn = types.InlineKeyboardButton(
+            "Выберите актив", 
+            web_app=types.WebAppInfo(url=WEBAPP_URL)
+        )
+        help_btn = types.InlineKeyboardButton("ℹ️ Справка", callback_data="help")
+        keyboard.add(webapp_btn)
+        keyboard.add(help_btn)
+        
+        bot.reply_to(
+            message, 
+            response_text, 
+            parse_mode='Markdown',
+            reply_markup=keyboard
+        )
+"""
+        
+        # Показываем первые 4 актива
+        for i, (_, asset_data) in enumerate(list(ASSETS.items())[:4]):
+            response_text += f"{asset_data['icon']} {asset_data['title']}\n"
+        
+        if len(ASSETS) > 4:
+            response_text += f"...и еще {len(ASSETS) - 4}\n"
+        
+        response_text += "\n💡 **Откройте каталог для удобного выбора:**"
+        
+        keyboard = types.InlineKeyboardMarkup()
+        webapp_btn = types.InlineKeyboardButton(
+            "Выберите актив", 
+            web_app=types.WebAppInfo(url=WEBAPP_URL)
+        )
+        help_btn = types.InlineKeyboardButton("ℹ️ Справка", callback_data="help")
+        keyboard.add(webapp_btn)
+        keyboard.add(help_btn)
+        
+        bot.reply_to(
+            message, 
+            response_text, 
+            parse_mode='Markdown',
+            reply_markup=keyboard
+        )
 """
         
         # Показываем первые 4 актива
