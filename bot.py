@@ -421,6 +421,8 @@ def handle_web_app_data(message):
     logger.info("=" * 50)
     logger.info("ПОЛУЧЕНО WEB_APP_DATA")
     logger.info(f"От: {message.from_user.first_name} (ID: {message.from_user.id})")
+    logger.info(f"Username: {message.from_user.username}")
+    logger.info(f"Language: {message.from_user.language_code}")
     
     try:
         # Проверяем наличие данных
@@ -437,12 +439,15 @@ def handle_web_app_data(message):
         # Парсим JSON данные
         raw_data = message.web_app_data.data
         logger.info(f"Сырые данные: {raw_data}")
+        logger.info(f"Тип данных: {type(raw_data)}")
+        logger.info(f"Длина данных: {len(raw_data) if raw_data else 0}")
         
         web_app_data = json.loads(raw_data)
         action = web_app_data.get('action')
         
         logger.info(f"Действие: {action}")
         logger.info(f"Полные данные: {web_app_data}")
+        logger.info(f"Ключи данных: {list(web_app_data.keys())}")
         
         # Обработка отправки email
         if action == 'send_email':
@@ -453,6 +458,8 @@ def handle_web_app_data(message):
             logger.info(f"Email: {email}")
             logger.info(f"Актив: {asset_type}")
             logger.info(f"Доступные активы: {list(ASSETS.keys())}")
+            logger.info(f"Email валидный: {validate_email(email) if email else False}")
+            logger.info(f"Актив существует: {asset_type in ASSETS if asset_type else False}")
             
             # Валидация email
             if not email:
