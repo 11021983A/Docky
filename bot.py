@@ -637,6 +637,13 @@ def handle_text_messages(message):
     """Обработка текстовых сообщений"""
     logger.info(f"Получено текстовое сообщение от {message.from_user.first_name}: {message.text}")
     
+    user_id = message.from_user.id
+    
+    # Проверяем, ожидает ли пользователь ввод email
+    if user_id in user_sessions and user_sessions[user_id].get('waiting_for_email'):
+        handle_email_input(message)
+        return
+    
     response_text = f"""
 🤖 Я понимаю только команды.
 
@@ -649,8 +656,10 @@ def handle_text_messages(message):
         "Выберите актив", 
         web_app=types.WebAppInfo(url=WEBAPP_URL)
     )
+    email_btn = types.InlineKeyboardButton("📧 Отправить email", callback_data="send_email")
     help_btn = types.InlineKeyboardButton("ℹ️ Справка", callback_data="help")
     keyboard.add(webapp_btn)
+    keyboard.add(email_btn)
     keyboard.add(help_btn)
     
     bot.reply_to(
@@ -660,20 +669,165 @@ def handle_text_messages(message):
         reply_markup=keyboard
     )
 
+def handle_email_input(message):
+    """Обработка ввода email адреса"""
+    user_id = message.from_user.id
+    email = message.text.strip()
+    
+    logger.info(f"📧 Обработка ввода email: {email}")
+    
+    # Валидация email
+    if not validate_email(email):
+        bot.reply_to(message, "⚠️ Неверный формат email адреса. Попробуйте еще раз:")
+        return
+    
+    # Получаем информацию о выбранном активе
+    asset_type = user_sessions[user_id].get('pending_asset')
+    if not asset_type or asset_type not in ASSETS:
+        bot.reply_to(message, "⚠️ Ошибка: не выбран тип актива. Попробуйте снова.")
+        # Сбрасываем состояние
+        user_sessions[user_id]['waiting_for_email'] = False
+        user_sessions[user_id]['pending_asset'] = None
+        return
+    
+    asset = ASSETS[asset_type]
+    user_name = message.from_user.first_name or "Пользователь"
+    
+    # Отправляем уведомление пользователю
+    bot.reply_to(message, f"📧 Отправляем документы для {asset['icon']} {asset['title']} на {email}...")
+    
+    # Отправляем email
+    logger.info(f"📧 ОТПРАВКА EMAIL ЧЕРЕЗ TELEGRAM КНОПКИ")
+    logger.info(f"Email: {email}")
+    logger.info(f"Актив: {asset_type}")
+    logger.info(f"Пользователь: {user_name}")
+    
+    success = send_email_with_document(email, asset_type, user_name)
+    
+    # Сбрасываем состояние
+    user_sessions[user_id]['waiting_for_email'] = False
+    user_sessions[user_id]['pending_asset'] = None
+    
+    if success:
+        logger.info(f"✅ EMAIL УСПЕШНО ОТПРАВЛЕН через Telegram кнопки на {email}")
+        
+        response_text = f"""✅ **Документы отправлены!**
+
+📧 **Email:** {email}
+📄 **Актив:** {asset['icon']} {asset['title']}
+
+📬 Проверьте входящие письма и папку "Спам".
+
+📄 Нужны документы для другого актива?"""
+        
+        keyboard = types.InlineKeyboardMarkup()
+        webapp_btn = types.InlineKeyboardButton(
+            "Выбрать другой актив", 
+            web_app=types.WebAppInfo(url=WEBAPP_URL)
+        )
+        email_btn = types.InlineKeyboardButton("📧 Отправить еще", callback_data="send_email")
+        keyboard.add(webapp_btn)
+        keyboard.add(email_btn)
+        
+        bot.send_message(
+            message.chat.id, 
+            response_text, 
+            parse_mode='Markdown',
+            reply_markup=keyboard
+        )
+        
+        # Уведомление админу
+        if ADMIN_CHAT_ID:
+            admin_msg = f"📧 Email отправлен через Telegram кнопки\n👤 {user_name}\n📄 {asset['title']}\n📧 {email}"
+            try:
+                bot.send_message(ADMIN_CHAT_ID, admin_msg)
+                logger.info("Уведомление админу отправлено")
+            except Exception as e:
+                logger.error(f"Ошибка отправки админу: {e}")
+    else:
+        logger.error(f"❌ ОШИБКА ОТПРАВКИ EMAIL через Telegram кнопки на {email}")
+        error_text = f"""⚠️ **Ошибка отправки**
+
+Не удалось отправить документы на {email}
+
+Попробуйте:
+• Проверить правильность email
+• Использовать команду /test_email
+• Написать нам напрямую: {EMAIL_USER}"""
+        
+        bot.send_message(message.chat.id, error_text, parse_mode='Markdown')
+
 @bot.callback_query_handler(func=lambda call: True)
 def handle_callback_query(call):
     """Обработка нажатий на кнопки"""
     try:
+        logger.info(f"🔘 Получен callback: {call.data}")
+        logger.info(f"От пользователя: {call.from_user.first_name} (ID: {call.from_user.id})")
+        
         if call.data == "help":
             help_command(call.message)
         elif call.data == "contacts":
             contacts_command(call.message)
+        elif call.data == "send_email":
+            handle_send_email_callback(call)
+        elif call.data.startswith("send_email_"):
+            # Обработка отправки email для конкретного актива
+            asset_type = call.data.replace("send_email_", "")
+            handle_send_email_for_asset(call, asset_type)
         
         bot.answer_callback_query(call.id)
         
     except Exception as e:
         logger.error(f"Ошибка в callback: {e}")
         bot.answer_callback_query(call.id, "Произошла ошибка")
+
+def handle_send_email_callback(call):
+    """Обработка кнопки отправки email"""
+    logger.info("📧 Обработка кнопки отправки email")
+    
+    # Создаем клавиатуру с выбором актива
+    keyboard = types.InlineKeyboardMarkup()
+    
+    for asset_type, asset in ASSETS.items():
+        btn_text = f"{asset['icon']} {asset['title']}"
+        callback_data = f"send_email_{asset_type}"
+        keyboard.add(types.InlineKeyboardButton(btn_text, callback_data=callback_data))
+    
+    keyboard.add(types.InlineKeyboardButton("❌ Отмена", callback_data="cancel"))
+    
+    bot.send_message(
+        call.message.chat.id,
+        "📧 **Выберите тип актива для отправки документов:**",
+        parse_mode='Markdown',
+        reply_markup=keyboard
+    )
+
+def handle_send_email_for_asset(call, asset_type):
+    """Обработка отправки email для конкретного актива"""
+    logger.info(f"📧 Отправка email для актива: {asset_type}")
+    
+    if asset_type not in ASSETS:
+        bot.answer_callback_query(call.id, "Неизвестный тип актива")
+        return
+    
+    asset = ASSETS[asset_type]
+    
+    # Создаем клавиатуру для ввода email
+    keyboard = types.InlineKeyboardMarkup()
+    keyboard.add(types.InlineKeyboardButton("❌ Отмена", callback_data="cancel"))
+    
+    bot.send_message(
+        call.message.chat.id,
+        f"📧 **Отправка документов для {asset['icon']} {asset['title']}**\n\n"
+        f"Введите email адрес в следующем сообщении:",
+        parse_mode='Markdown',
+        reply_markup=keyboard
+    )
+    
+    # Сохраняем информацию о том, что пользователь ожидает ввод email
+    user_id = call.from_user.id
+    user_sessions[user_id]['waiting_for_email'] = True
+    user_sessions[user_id]['pending_asset'] = asset_type
 
 def main():
     """Основная функция запуска бота"""
