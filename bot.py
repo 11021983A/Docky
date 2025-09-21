@@ -92,7 +92,7 @@ def run_flask():
 # Хранилище для пользователей
 user_sessions = {}
 
-# Данные об активах
+# Данные об активах - КЛЮЧИ ДОЛЖНЫ ТОЧНО СОВПАДАТЬ С index.html!
 ASSETS = {
     'business-center': {
         'icon': '🏢',
@@ -180,6 +180,7 @@ def send_email_with_document(recipient_email: str, asset_type: str, user_name: s
         asset = ASSETS.get(asset_type)
         if not asset:
             logger.error(f"Актив {asset_type} не найден в ASSETS")
+            logger.error(f"Доступные активы: {list(ASSETS.keys())}")
             return False
             
         # Создаем сообщение
@@ -451,6 +452,7 @@ def handle_web_app_data(message):
             logger.info(f"ЗАПРОС НА ОТПРАВКУ EMAIL")
             logger.info(f"Email: {email}")
             logger.info(f"Актив: {asset_type}")
+            logger.info(f"Доступные активы: {list(ASSETS.keys())}")
             
             # Валидация email
             if not email:
@@ -585,7 +587,8 @@ def test_email_command(message):
     
     bot.reply_to(message, f"📄 Отправляю тестовое письмо на {test_email}...")
     
-    success = send_email_with_document(test_email, 'бизнес-центр', user_name)
+    # Используем корректный ключ!
+    success = send_email_with_document(test_email, 'business-center', user_name)
     
     if success:
         bot.reply_to(message, f"✅ Тестовое письмо успешно отправлено на {test_email}!\n📬 Проверьте почту и папку Спам.")
@@ -597,100 +600,28 @@ def handle_text_messages(message):
     """Обработка текстовых сообщений"""
     logger.info(f"Получено текстовое сообщение от {message.from_user.first_name}: {message.text}")
     
-    user_message = message.text.lower() if hasattr(message, 'text') and message.text else ""
+    response_text = f"""
+🤖 Я понимаю только команды.
+
+📋 **Доступно {len(ASSETS)} типов активов**
+
+💡 **Откройте каталог для удобного выбора:**"""
     
-    # Поиск активов по ключевым словам
-    found_assets = []
-    for asset_key, asset_data in ASSETS.items():
-        if (any(word in user_message for word in asset_key.split('-')) or
-            any(word in user_message for word in asset_data['title'].lower().split())):
-            found_assets.append((asset_key, asset_data))
+    keyboard = types.InlineKeyboardMarkup()
+    webapp_btn = types.InlineKeyboardButton(
+        "Выберите актив", 
+        web_app=types.WebAppInfo(url=WEBAPP_URL)
+    )
+    help_btn = types.InlineKeyboardButton("ℹ️ Справка", callback_data="help")
+    keyboard.add(webapp_btn)
+    keyboard.add(help_btn)
     
-    if found_assets:
-        if len(found_assets) == 1:
-            asset_key, asset_data = found_assets[0]
-            
-            response_text = f"""
-{asset_data['icon']} **{asset_data['title']}**
-
-📝 {asset_data['description']}
-
-🎯 **Что хотите сделать?**
-"""
-            
-            keyboard = types.InlineKeyboardMarkup()
-            
-            webapp_url_with_asset = f"{WEBAPP_URL}?asset={asset_key}"
-            webapp_btn = types.InlineKeyboardButton(
-                f"📋 Открыть {asset_data['title']}", 
-                web_app=types.WebAppInfo(url=webapp_url_with_asset)
-            )
-            keyboard.add(webapp_btn)
-            
-            catalog_btn = types.InlineKeyboardButton(
-                "📚 Весь каталог", 
-                web_app=types.WebAppInfo(url=WEBAPP_URL)
-            )
-            keyboard.add(catalog_btn)
-            
-        else:
-            assets_text = '\n'.join([
-                f"• {data['icon']} {data['title']}" 
-                for _, data in found_assets
-            ])
-            
-            response_text = f"""
-🔍 **Найдено активов: {len(found_assets)}**
-
-{assets_text}
-
-📋 **Откройте каталог для выбора:**
-"""
-            
-            keyboard = types.InlineKeyboardMarkup()
-            webapp_btn = types.InlineKeyboardButton(
-                "Выберите актив", 
-                web_app=types.WebAppInfo(url=WEBAPP_URL)
-            )
-            keyboard.add(webapp_btn)
-        
-        bot.reply_to(
-            message, 
-            response_text, 
-            parse_mode='Markdown',
-            reply_markup=keyboard
-        )
-        
-    else:
-        response_text = f"""
-🤖 Понял вас не совсем точно.
-
-📋 **Доступно {len(ASSETS)} типов активов:**
-"""
-        
-        for i, (_, asset_data) in enumerate(list(ASSETS.items())[:4]):
-            response_text += f"{asset_data['icon']} {asset_data['title']}\n"
-        
-        if len(ASSETS) > 4:
-            response_text += f"...и еще {len(ASSETS) - 4}\n"
-        
-        response_text += "\n💡 **Откройте каталог для удобного выбора:**"
-        
-        keyboard = types.InlineKeyboardMarkup()
-        webapp_btn = types.InlineKeyboardButton(
-            "Выберите актив", 
-            web_app=types.WebAppInfo(url=WEBAPP_URL)
-        )
-        help_btn = types.InlineKeyboardButton("ℹ️ Справка", callback_data="help")
-        keyboard.add(webapp_btn)
-        keyboard.add(help_btn)
-        
-        bot.reply_to(
-            message, 
-            response_text, 
-            parse_mode='Markdown',
-            reply_markup=keyboard
-        )
+    bot.reply_to(
+        message, 
+        response_text, 
+        parse_mode='Markdown',
+        reply_markup=keyboard
+    )
 
 @bot.callback_query_handler(func=lambda call: True)
 def handle_callback_query(call):
@@ -720,14 +651,6 @@ def main():
     print(f"📱 Web App: {WEBAPP_URL}")
     print(f"📧 Email: {EMAIL_USER}")
     print(f"🌐 Health Check: http://localhost:{os.environ.get('PORT', 10000)}")
-    print(f"📋 Функции:")
-    print("   ✅ Telegram Web App интеграция")
-    print("   ✅ Отправка email через Mail.ru")
-    print("   ✅ HTTP Health Check для Render")
-    print("   ✅ Автоматическое прикрепление документов")
-    print("   ✅ Поиск активов по ключевым словам")
-    print("   ✅ Обработка данных от веб-приложения")
-    print("   ✅ Тестовая команда /test_email")
     print("=" * 50)
     
     try:
