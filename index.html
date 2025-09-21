@@ -461,6 +461,7 @@
         // Инициализация приложения
         function initializeApp() {
             console.log('🚀 Инициализация приложения...');
+            console.log('Доступные активы:', Object.keys(assets));
             renderAssets();
             
             const urlParams = new URLSearchParams(window.location.search);
@@ -571,6 +572,7 @@
             console.log('📧 ПОПЫТКА ОТПРАВКИ EMAIL:', email);
             console.log('Выбранный актив:', selectedAsset);
             console.log('Telegram доступен?', isTelegramWebApp);
+            console.log('Объект tg:', tg);
             
             if (!email) {
                 showNotification('Введите email адрес', 'error');
@@ -586,7 +588,7 @@
             const emailData = {
                 action: 'send_email',
                 email: email,
-                asset_type: selectedAsset  // Используем правильный ключ!
+                asset_type: selectedAsset
             };
             
             console.log('📤 ОТПРАВЛЯЕМ ДАННЫЕ EMAIL:', JSON.stringify(emailData));
