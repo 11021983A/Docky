@@ -578,6 +578,18 @@ def handle_web_app_data(message):
                 
                 bot.reply_to(message, response_text, parse_mode='Markdown', reply_markup=keyboard)
         
+        # Обработка тестовых данных
+        elif action == 'test':
+            test_message = web_app_data.get('message', 'Тест')
+            timestamp = web_app_data.get('timestamp', 'Неизвестно')
+            
+            logger.info(f"🧪 ТЕСТОВЫЕ ДАННЫЕ ПОЛУЧЕНЫ")
+            logger.info(f"Сообщение: {test_message}")
+            logger.info(f"Время: {timestamp}")
+            logger.info(f"От пользователя: {message.from_user.first_name}")
+            
+            bot.reply_to(message, f"🧪 **Тест WebApp успешен!**\n\n📱 Платформа: {message.from_user.language_code}\n⏰ Время: {timestamp}\n✅ Данные дошли до бота")
+        
         else:
             logger.warning(f"Неизвестное действие: {action}")
             logger.warning(f"Данные: {web_app_data}")
