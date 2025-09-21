@@ -342,8 +342,8 @@
                 <button class="btn btn-secondary" onclick="sendToEmail()">
                     <span>📧</span> На email
                 </button>
-                <button class="btn btn-secondary" onclick="testTelegramWebApp()" style="background: #ff6b6b; color: white;">
-                    <span>🧪</span> Тест WebApp
+                <button class="btn btn-secondary" onclick="sendEmailViaTelegram()" style="background: #28a745; color: white;">
+                    <span>📱</span> Через Telegram
                 </button>
             </div>
         </div>
@@ -725,43 +725,66 @@
             }
         }
         
-        // Тестирование Telegram WebApp
-        function testTelegramWebApp() {
-            console.log('🧪 ТЕСТИРОВАНИЕ TELEGRAM WEBAPP');
-            console.log('================================');
-            
-            if (!tg) {
-                console.log('❌ Telegram WebApp не инициализирован');
-                showNotification('Telegram WebApp не найден', 'error');
+        // Отправка email через Telegram кнопки
+        function sendEmailViaTelegram() {
+            if (!selectedAsset) {
+                showNotification('Сначала выберите актив', 'error');
                 return;
             }
             
-            console.log('✅ Telegram WebApp найден');
-            console.log('Платформа:', tg.platform);
-            console.log('Версия:', tg.version);
-            console.log('sendData:', typeof tg.sendData);
-            console.log('MainButton:', typeof tg.MainButton);
-            console.log('close:', typeof tg.close);
-            console.log('ready:', typeof tg.ready);
-            console.log('expand:', typeof tg.expand);
+            console.log('📱 Отправка email через Telegram кнопки');
+            console.log('Выбранный актив:', selectedAsset);
             
-            // Тестируем отправку простых данных
-            const testData = {
-                action: 'test',
-                message: 'Тест WebApp',
+            // Открываем модальное окно для ввода email
+            document.getElementById('emailModal').classList.add('active');
+            document.getElementById('emailInput').focus();
+            
+            // Изменяем текст кнопки отправки
+            const sendButton = document.querySelector('.modal-buttons .btn-primary');
+            if (sendButton) {
+                sendButton.textContent = 'Отправить через Telegram';
+                sendButton.onclick = confirmSendEmailViaTelegram;
+            }
+        }
+        
+        // Подтверждение отправки email через Telegram
+        function confirmSendEmailViaTelegram() {
+            const email = document.getElementById('emailInput').value.trim();
+            
+            if (!email) {
+                showNotification('Введите email адрес', 'error');
+                return;
+            }
+            
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+                showNotification('Неверный формат email', 'error');
+                return;
+            }
+            
+            console.log('📧 Отправка через Telegram кнопки:', email);
+            console.log('Актив:', selectedAsset);
+            
+            // Сохраняем данные в localStorage для передачи боту
+            const emailData = {
+                action: 'send_email',
+                email: email,
+                asset_type: selectedAsset,
                 timestamp: new Date().toISOString()
             };
             
-            console.log('📤 Отправляем тестовые данные:', JSON.stringify(testData));
+            localStorage.setItem('pendingEmailData', JSON.stringify(emailData));
+            console.log('📱 Данные сохранены в localStorage:', emailData);
             
-            try {
-                tg.sendData(JSON.stringify(testData));
-                console.log('✅ Тестовые данные отправлены успешно');
-                showNotification('Тест WebApp: данные отправлены', 'success');
-            } catch (error) {
-                console.error('❌ Ошибка отправки тестовых данных:', error);
-                showNotification('Тест WebApp: ошибка - ' + error.message, 'error');
-            }
+            closeEmailModal();
+            showNotification('Данные сохранены. Закройте WebApp и нажмите кнопку "Отправить email" в чате', 'success');
+            
+            // Закрываем WebApp
+            setTimeout(() => {
+                if (tg && tg.close) {
+                    tg.close();
+                }
+            }, 2000);
         }
         
         // Функция для отправки данных и закрытия WebApp
