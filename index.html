@@ -415,7 +415,7 @@
                 url: 'https://github.com/11021983A/Docky/raw/main/Бизнес_КИ.docx'
             },
             'property-complex': {
-                icon: '🗝️',
+                icon: '🏗️',
                 title: 'Комплекс имущества',
                 description: 'Имущественные комплексы',
                 filename: 'Бизнес_КИ.docx',
@@ -440,6 +440,7 @@
         let tg = null;
         let isTelegramWebApp = false;
         let selectedAsset = null;
+        let pendingAction = null; // Для хранения действия, которое нужно отправить
         
         // Инициализация Telegram WebApp
         function initTelegramWebApp() {
@@ -534,20 +535,20 @@
             link.click();
             document.body.removeChild(link);
             
-            const downloadData = {
+            // Сохраняем информацию о скачивании
+            pendingAction = {
                 action: 'download_completed',
                 asset_type: selectedAsset
             };
             
-            console.log('📤 Отправляем данные о скачивании:', downloadData);
-            
-            if (isTelegramWebApp && tg) {
-                tg.sendData(JSON.stringify(downloadData));
-            } else {
-                console.log('ℹ️ Telegram WebApp недоступен');
-            }
+            console.log('📤 Сохранили действие скачивания:', pendingAction);
             
             showNotification('Документ загружается...', 'success');
+            
+            // Закрываем WebApp через 2 секунды после скачивания
+            setTimeout(() => {
+                sendDataAndClose();
+            }, 2000);
         }
         
         // Отправка на email
@@ -585,28 +586,45 @@
                 return;
             }
             
-            const emailData = {
+            // Сохраняем данные для отправки
+            pendingAction = {
                 action: 'send_email',
                 email: email,
                 asset_type: selectedAsset
             };
             
-            console.log('📤 ОТПРАВЛЯЕМ ДАННЫЕ EMAIL:', JSON.stringify(emailData));
+            console.log('📤 Подготовлены данные для отправки:', pendingAction);
+            
+            closeEmailModal();
+            showNotification('Отправляем документы на ' + email, 'success');
+            
+            // Отправляем данные и закрываем WebApp
+            setTimeout(() => {
+                sendDataAndClose();
+            }, 1500);
+        }
+        
+        // Функция для отправки данных и закрытия WebApp
+        function sendDataAndClose() {
+            if (!pendingAction) {
+                console.log('⚠️ Нет данных для отправки');
+                return;
+            }
+            
+            console.log('📤 ОТПРАВЛЯЕМ ДАННЫЕ:', JSON.stringify(pendingAction));
             
             if (isTelegramWebApp && tg) {
                 try {
-                    tg.sendData(JSON.stringify(emailData));
+                    tg.sendData(JSON.stringify(pendingAction));
                     console.log('✅ Данные отправлены через tg.sendData');
-                    closeEmailModal();
-                    showNotification('Отправляем документы на ' + email, 'success');
+                    // WebApp автоматически закроется после sendData
                 } catch (error) {
                     console.error('❌ Ошибка при отправке:', error);
                     showNotification('Ошибка отправки данных', 'error');
                 }
             } else {
                 console.log('⚠️ Telegram WebApp недоступен - работаем в режиме браузера');
-                closeEmailModal();
-                showNotification('Режим браузера: email функция недоступна', 'error');
+                showNotification('Режим браузера: функция недоступна', 'error');
             }
         }
         
