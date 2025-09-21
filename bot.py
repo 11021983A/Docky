@@ -774,6 +774,10 @@ def handle_callback_query(call):
             # Обработка отправки email для конкретного актива
             asset_type = call.data.replace("send_email_", "")
             handle_send_email_for_asset(call, asset_type)
+        elif call.data == "cancel":
+            # Обработка отмены
+            bot.answer_callback_query(call.id, "Отменено")
+            return
         
         bot.answer_callback_query(call.id)
         
