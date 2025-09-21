@@ -423,6 +423,9 @@ def handle_web_app_data(message):
     logger.info(f"От: {message.from_user.first_name} (ID: {message.from_user.id})")
     logger.info(f"Username: {message.from_user.username}")
     logger.info(f"Language: {message.from_user.language_code}")
+    logger.info(f"Chat ID: {message.chat.id}")
+    logger.info(f"Message ID: {message.message_id}")
+    logger.info(f"Date: {message.date}")
     
     try:
         # Проверяем наличие данных
@@ -442,12 +445,27 @@ def handle_web_app_data(message):
         logger.info(f"Тип данных: {type(raw_data)}")
         logger.info(f"Длина данных: {len(raw_data) if raw_data else 0}")
         
-        web_app_data = json.loads(raw_data)
-        action = web_app_data.get('action')
-        
-        logger.info(f"Действие: {action}")
-        logger.info(f"Полные данные: {web_app_data}")
-        logger.info(f"Ключи данных: {list(web_app_data.keys())}")
+        # Дополнительная диагностика для мобильных устройств
+        try:
+            web_app_data = json.loads(raw_data)
+            action = web_app_data.get('action')
+            
+            logger.info(f"Действие: {action}")
+            logger.info(f"Полные данные: {web_app_data}")
+            logger.info(f"Ключи данных: {list(web_app_data.keys())}")
+            
+            # Специальная диагностика для отправки email
+            if action == 'send_email':
+                logger.info("🔍 ДЕТАЛЬНАЯ ДИАГНОСТИКА EMAIL:")
+                logger.info(f"- Email: {web_app_data.get('email')}")
+                logger.info(f"- Asset: {web_app_data.get('asset_type')}")
+                logger.info(f"- Все поля: {web_app_data}")
+                
+        except json.JSONDecodeError as e:
+            logger.error(f"ОШИБКА ПАРСИНГА JSON: {e}")
+            logger.error(f"Сырые данные: {raw_data}")
+            bot.reply_to(message, "⚠️ Ошибка обработки данных от приложения")
+            return
         
         # Обработка отправки email
         if action == 'send_email':
