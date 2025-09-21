@@ -452,6 +452,24 @@
                 console.log('✅ TELEGRAM WEB APP ПОДКЛЮЧЕН:');
                 console.log('Версия:', tg.version);
                 console.log('Платформа:', tg.platform);
+                console.log('sendData доступен:', typeof tg.sendData);
+                console.log('MainButton доступен:', typeof tg.MainButton);
+                console.log('close доступен:', typeof tg.close);
+                
+                // Дополнительная настройка для мобильных устройств
+                if (tg.platform === 'ios' || tg.platform === 'android') {
+                    console.log('📱 Мобильная платформа обнаружена:', tg.platform);
+                    
+                    // Настройка MainButton для мобильных устройств
+                    if (tg.MainButton) {
+                        tg.MainButton.hide();
+                    }
+                    
+                    // Настройка BackButton для мобильных устройств
+                    if (tg.BackButton) {
+                        tg.BackButton.hide();
+                    }
+                }
             } else {
                 console.log('⚠️ TELEGRAM WEB APP НЕ НАЙДЕН');
                 isTelegramWebApp = false;
@@ -576,30 +594,101 @@
                 return;
             }
             
-            // Готовим данные для отправки
-            const emailData = {
+            // Сохраняем данные для отправки
+            pendingAction = {
                 action: 'send_email',
                 email: email,
                 asset_type: selectedAsset
             };
             
-            console.log('📤 ОТПРАВЛЯЕМ ДАННЫЕ EMAIL:', JSON.stringify(emailData));
+            console.log('📤 Подготовлены данные для отправки:', JSON.stringify(pendingAction));
+            console.log('🔍 Диагностика для мобильных устройств:');
+            console.log('- Платформа:', tg?.platform);
+            console.log('- Версия:', tg?.version);
+            console.log('- sendData доступен:', typeof tg?.sendData);
+            
+            closeEmailModal();
+            showNotification('Отправляем документы на ' + email, 'success');
+            
+            // Отправляем данные и закрываем WebApp
+            setTimeout(() => {
+                sendDataAndClose();
+            }, 1500);
+        }
+        
+        // Функция для отправки данных и закрытия WebApp
+        function sendDataAndClose() {
+            if (!pendingAction) {
+                console.log('⚠️ Нет данных для отправки');
+                return;
+            }
+            
+            console.log('📤 ОТПРАВЛЯЕМ ДАННЫЕ:', JSON.stringify(pendingAction));
+            console.log('🔍 Диагностика Telegram WebApp:');
+            console.log('- isTelegramWebApp:', isTelegramWebApp);
+            console.log('- tg объект:', tg);
+            console.log('- tg.sendData функция:', typeof tg?.sendData);
+            console.log('- Платформа:', tg?.platform);
+            console.log('- Версия:', tg?.version);
             
             if (isTelegramWebApp && tg) {
                 try {
-                    // Отправляем данные напрямую
-                    tg.sendData(JSON.stringify(emailData));
-                    console.log('✅ Данные отправлены через tg.sendData');
-                    closeEmailModal();
-                    showNotification('Отправляем документы на ' + email, 'success');
-                    // WebApp автоматически закроется после sendData
+                    // Проверяем доступность метода sendData
+                    if (typeof tg.sendData === 'function') {
+                        console.log('✅ Используем tg.sendData');
+                        tg.sendData(JSON.stringify(pendingAction));
+                        console.log('✅ Данные отправлены через tg.sendData');
+                        
+                        // Дополнительная проверка для мобильных устройств
+                        if (tg.platform === 'ios' || tg.platform === 'android') {
+                            console.log('📱 Мобильная платформа обнаружена:', tg.platform);
+                            // Даем больше времени для обработки на мобильных устройствах
+                            setTimeout(() => {
+                                if (tg.close) {
+                                    tg.close();
+                                }
+                            }, 1000);
+                        }
+                    } else {
+                        console.log('⚠️ tg.sendData недоступен, пробуем альтернативные методы');
+                        
+                        // Альтернативный способ для мобильных устройств
+                        if (tg.MainButton) {
+                            console.log('📱 Используем MainButton для отправки данных');
+                            tg.MainButton.setText('Отправляем...');
+                            tg.MainButton.show();
+                            
+                            // Отправляем данные через MainButton
+                            tg.MainButton.onClick(() => {
+                                try {
+                                    tg.sendData(JSON.stringify(pendingAction));
+                                    console.log('✅ Данные отправлены через MainButton');
+                                } catch (e) {
+                                    console.error('❌ Ошибка через MainButton:', e);
+                                }
+                            });
+                        } else {
+                            console.log('❌ Нет доступных методов отправки данных');
+                            showNotification('Ошибка: нет методов отправки', 'error');
+                        }
+                    }
                 } catch (error) {
                     console.error('❌ Ошибка при отправке:', error);
-                    showNotification('Ошибка отправки данных', 'error');
+                    console.error('Детали ошибки:', error.message);
+                    showNotification('Ошибка отправки данных: ' + error.message, 'error');
+                    
+                    // Попытка альтернативного способа
+                    try {
+                        console.log('🔄 Пробуем альтернативный способ отправки...');
+                        if (tg.close) {
+                            tg.close();
+                        }
+                    } catch (closeError) {
+                        console.error('❌ Ошибка закрытия:', closeError);
+                    }
                 }
             } else {
                 console.log('⚠️ Telegram WebApp недоступен - работаем в режиме браузера');
-                closeEmailModal();
                 showNotification('Режим браузера: функция недоступна', 'error');
             }
         }
