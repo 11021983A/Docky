@@ -735,56 +735,62 @@
             console.log('📱 Отправка email через Telegram кнопки');
             console.log('Выбранный актив:', selectedAsset);
             
-            // Открываем модальное окно для ввода email
-            document.getElementById('emailModal').classList.add('active');
-            document.getElementById('emailInput').focus();
+            // Показываем инструкцию пользователю
+            const asset = assets[selectedAsset];
+            const instructionText = `
+📧 **Отправка документов через Telegram**
+
+📄 **Выбранный актив:** ${asset.icon} ${asset.title}
+
+**Инструкция:**
+1. Закройте это окно (нажмите кнопку "Назад" или "Закрыть")
+2. В чате с ботом нажмите кнопку "📧 Отправить email"
+3. Выберите "${asset.title}" из списка
+4. Введите ваш email адрес
+5. Документы будут отправлены автоматически
+
+✅ **Этот способ работает на всех устройствах!**
+            `;
             
-            // Изменяем текст кнопки отправки
-            const sendButton = document.querySelector('.modal-buttons .btn-primary');
-            if (sendButton) {
-                sendButton.textContent = 'Отправить через Telegram';
-                sendButton.onclick = confirmSendEmailViaTelegram;
-            }
+            // Создаем модальное окно с инструкцией
+            const modal = document.createElement('div');
+            modal.className = 'modal active';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>📧 Отправка через Telegram</h3>
+                    </div>
+                    <div style="padding: 20px; line-height: 1.6;">
+                        ${instructionText}
+                    </div>
+                    <div class="modal-buttons">
+                        <button class="btn btn-primary" onclick="closeInstructionModal()">
+                            Понятно, закрыть
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            
+            // Сохраняем информацию о выбранном активе для справки
+            localStorage.setItem('lastSelectedAsset', selectedAsset);
+            console.log('📱 Информация об активе сохранена:', selectedAsset);
         }
         
-        // Подтверждение отправки email через Telegram
-        function confirmSendEmailViaTelegram() {
-            const email = document.getElementById('emailInput').value.trim();
-            
-            if (!email) {
-                showNotification('Введите email адрес', 'error');
-                return;
+        // Закрытие модального окна с инструкцией
+        function closeInstructionModal() {
+            const modal = document.querySelector('.modal');
+            if (modal) {
+                modal.remove();
             }
-            
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            if (!emailRegex.test(email)) {
-                showNotification('Неверный формат email', 'error');
-                return;
-            }
-            
-            console.log('📧 Отправка через Telegram кнопки:', email);
-            console.log('Актив:', selectedAsset);
-            
-            // Сохраняем данные в localStorage для передачи боту
-            const emailData = {
-                action: 'send_email',
-                email: email,
-                asset_type: selectedAsset,
-                timestamp: new Date().toISOString()
-            };
-            
-            localStorage.setItem('pendingEmailData', JSON.stringify(emailData));
-            console.log('📱 Данные сохранены в localStorage:', emailData);
-            
-            closeEmailModal();
-            showNotification('Данные сохранены. Закройте WebApp и нажмите кнопку "Отправить email" в чате', 'success');
             
             // Закрываем WebApp
             setTimeout(() => {
                 if (tg && tg.close) {
                     tg.close();
                 }
-            }, 2000);
+            }, 500);
         }
         
         // Функция для отправки данных и закрытия WebApp
