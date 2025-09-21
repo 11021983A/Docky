@@ -455,23 +455,42 @@
                 console.log('sendData доступен:', typeof tg.sendData);
                 console.log('MainButton доступен:', typeof tg.MainButton);
                 console.log('close доступен:', typeof tg.close);
+                console.log('HapticFeedback доступен:', typeof tg.HapticFeedback);
+                console.log('User Agent:', navigator.userAgent);
+                console.log('Все методы tg:', Object.keys(tg));
                 
                 // Дополнительная настройка для мобильных устройств
                 if (tg.platform === 'ios' || tg.platform === 'android') {
-                    console.log('📱 Мобильная платформа обнаружена:', tg.platform);
+                    console.log('📱 МОБИЛЬНАЯ ПЛАТФОРМА ОБНАРУЖЕНА:', tg.platform);
+                    console.log('📱 Детальная диагностика мобильного устройства:');
+                    console.log('- initData:', tg.initData);
+                    console.log('- initDataUnsafe:', tg.initDataUnsafe);
+                    console.log('- colorScheme:', tg.colorScheme);
+                    console.log('- themeParams:', tg.themeParams);
                     
                     // Настройка MainButton для мобильных устройств
                     if (tg.MainButton) {
                         tg.MainButton.hide();
+                        console.log('📱 MainButton скрыт');
                     }
                     
                     // Настройка BackButton для мобильных устройств
                     if (tg.BackButton) {
                         tg.BackButton.hide();
+                        console.log('📱 BackButton скрыт');
                     }
+                    
+                    // Настройка HapticFeedback для мобильных устройств
+                    if (tg.HapticFeedback) {
+                        console.log('📱 HapticFeedback настроен');
+                    }
+                } else {
+                    console.log('💻 ДЕСКТОПНАЯ ПЛАТФОРМА:', tg.platform);
                 }
             } else {
                 console.log('⚠️ TELEGRAM WEB APP НЕ НАЙДЕН');
+                console.log('window.Telegram:', window.Telegram);
+                console.log('window.Telegram.WebApp:', window.Telegram?.WebApp);
                 isTelegramWebApp = false;
             }
         }
@@ -630,66 +649,137 @@
             console.log('- tg.sendData функция:', typeof tg?.sendData);
             console.log('- Платформа:', tg?.platform);
             console.log('- Версия:', tg?.version);
+            console.log('- User Agent:', navigator.userAgent);
             
             if (isTelegramWebApp && tg) {
-                try {
-                    // Проверяем доступность метода sendData
-                    if (typeof tg.sendData === 'function') {
-                        console.log('✅ Используем tg.sendData');
-                        tg.sendData(JSON.stringify(pendingAction));
-                        console.log('✅ Данные отправлены через tg.sendData');
-                        
-                        // Дополнительная проверка для мобильных устройств
-                        if (tg.platform === 'ios' || tg.platform === 'android') {
-                            console.log('📱 Мобильная платформа обнаружена:', tg.platform);
-                            // Даем больше времени для обработки на мобильных устройствах
-                            setTimeout(() => {
-                                if (tg.close) {
-                                    tg.close();
-                                }
-                            }, 1000);
-                        }
-                    } else {
-                        console.log('⚠️ tg.sendData недоступен, пробуем альтернативные методы');
-                        
-                        // Альтернативный способ для мобильных устройств
-                        if (tg.MainButton) {
-                            console.log('📱 Используем MainButton для отправки данных');
-                            tg.MainButton.setText('Отправляем...');
-                            tg.MainButton.show();
-                            
-                            // Отправляем данные через MainButton
-                            tg.MainButton.onClick(() => {
-                                try {
-                                    tg.sendData(JSON.stringify(pendingAction));
-                                    console.log('✅ Данные отправлены через MainButton');
-                                } catch (e) {
-                                    console.error('❌ Ошибка через MainButton:', e);
-                                }
-                            });
-                        } else {
-                            console.log('❌ Нет доступных методов отправки данных');
-                            showNotification('Ошибка: нет методов отправки', 'error');
-                        }
-                    }
-                } catch (error) {
-                    console.error('❌ Ошибка при отправке:', error);
-                    console.error('Детали ошибки:', error.message);
-                    showNotification('Ошибка отправки данных: ' + error.message, 'error');
-                    
-                    // Попытка альтернативного способа
-                    try {
-                        console.log('🔄 Пробуем альтернативный способ отправки...');
-                        if (tg.close) {
-                            tg.close();
-                        }
-                    } catch (closeError) {
-                        console.error('❌ Ошибка закрытия:', closeError);
-                    }
+                // Специальная обработка для мобильных устройств
+                if (tg.platform === 'ios' || tg.platform === 'android') {
+                    console.log('📱 МОБИЛЬНАЯ ПЛАТФОРМА - используем специальную логику');
+                    sendDataMobile();
+                } else {
+                    console.log('💻 ДЕСКТОПНАЯ ПЛАТФОРМА - используем стандартную логику');
+                    sendDataDesktop();
                 }
             } else {
                 console.log('⚠️ Telegram WebApp недоступен - работаем в режиме браузера');
                 showNotification('Режим браузера: функция недоступна', 'error');
+            }
+        }
+        
+        // Отправка данных для мобильных устройств
+        function sendDataMobile() {
+            console.log('📱 Отправка данных для мобильных устройств');
+            
+            try {
+                // Метод 1: Прямая отправка через sendData
+                if (typeof tg.sendData === 'function') {
+                    console.log('📱 Метод 1: Прямая отправка через sendData');
+                    tg.sendData(JSON.stringify(pendingAction));
+                    console.log('✅ Данные отправлены через sendData');
+                    
+                    // Не закрываем WebApp сразу на мобильных устройствах
+                    setTimeout(() => {
+                        console.log('📱 Закрываем WebApp через 2 секунды');
+                        if (tg.close) {
+                            tg.close();
+                        }
+                    }, 2000);
+                    return;
+                }
+                
+                // Метод 2: Через MainButton
+                if (tg.MainButton) {
+                    console.log('📱 Метод 2: Через MainButton');
+                    tg.MainButton.setText('Отправляем...');
+                    tg.MainButton.show();
+                    
+                    tg.MainButton.onClick(() => {
+                        try {
+                            tg.sendData(JSON.stringify(pendingAction));
+                            console.log('✅ Данные отправлены через MainButton');
+                        } catch (e) {
+                            console.error('❌ Ошибка через MainButton:', e);
+                        }
+                    });
+                    return;
+                }
+                
+                // Метод 3: Через HapticFeedback (для мобильных)
+                if (tg.HapticFeedback) {
+                    console.log('📱 Метод 3: Через HapticFeedback');
+                    tg.HapticFeedback.impactOccurred('medium');
+                    
+                    // Попытка отправки через событие
+                    setTimeout(() => {
+                        try {
+                            tg.sendData(JSON.stringify(pendingAction));
+                            console.log('✅ Данные отправлены через HapticFeedback');
+                        } catch (e) {
+                            console.error('❌ Ошибка через HapticFeedback:', e);
+                        }
+                    }, 500);
+                    return;
+                }
+                
+                // Метод 4: Через URL параметры (запасной вариант)
+                console.log('📱 Метод 4: Через URL параметры');
+                try {
+                    const urlParams = new URLSearchParams();
+                    urlParams.set('action', pendingAction.action);
+                    urlParams.set('email', pendingAction.email);
+                    urlParams.set('asset_type', pendingAction.asset_type);
+                    
+                    const url = window.location.origin + window.location.pathname + '?' + urlParams.toString();
+                    console.log('📱 URL с параметрами:', url);
+                    
+                    // Попытка отправки через изменение URL
+                    window.history.replaceState({}, '', url);
+                    
+                    // Попытка отправки через sendData с задержкой
+                    setTimeout(() => {
+                        try {
+                            tg.sendData(JSON.stringify(pendingAction));
+                            console.log('✅ Данные отправлены через URL параметры');
+                        } catch (e) {
+                            console.error('❌ Ошибка через URL параметры:', e);
+                        }
+                    }, 1000);
+                    return;
+                } catch (e) {
+                    console.error('❌ Ошибка URL параметров:', e);
+                }
+                
+                // Метод 5: Последняя попытка - прямая отправка
+                console.log('📱 Метод 5: Последняя попытка');
+                try {
+                    tg.sendData(JSON.stringify(pendingAction));
+                    console.log('✅ Данные отправлены (последняя попытка)');
+                } catch (e) {
+                    console.error('❌ Все методы не сработали:', e);
+                    showNotification('Ошибка отправки на мобильном устройстве', 'error');
+                }
+                
+            } catch (error) {
+                console.error('❌ Критическая ошибка на мобильном устройстве:', error);
+                showNotification('Критическая ошибка: ' + error.message, 'error');
+            }
+        }
+        
+        // Отправка данных для десктопных устройств
+        function sendDataDesktop() {
+            console.log('💻 Отправка данных для десктопных устройств');
+            
+            try {
+                if (typeof tg.sendData === 'function') {
+                    tg.sendData(JSON.stringify(pendingAction));
+                    console.log('✅ Данные отправлены через sendData (десктоп)');
+                } else {
+                    console.log('❌ sendData недоступен на десктопе');
+                    showNotification('Ошибка: sendData недоступен', 'error');
+                }
+            } catch (error) {
+                console.error('❌ Ошибка на десктопе:', error);
+                showNotification('Ошибка отправки данных: ' + error.message, 'error');
             }
         }
         
