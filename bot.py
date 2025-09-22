@@ -77,6 +77,12 @@ def get_webapp_url() -> str:
     except Exception:
         return WEBAPP_URL
 
+def get_webapp_keyboard() -> types.ReplyKeyboardMarkup:
+    """Клавиатура с кнопкой открытия WebApp (обязательна для корректной работы tg.sendData на мобильных)."""
+    keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=False)
+    keyboard.add(types.KeyboardButton(text="Выберите актив", web_app=types.WebAppInfo(url=get_webapp_url())))
+    return keyboard
+
 @app.route('/')
 def home():
     return jsonify({"status": "alive", "bot": "Доки", "version": "1.0"})
@@ -316,12 +322,7 @@ def start_command(message):
         'started_at': datetime.now()
     }
     
-    keyboard = types.InlineKeyboardMarkup()
-    webapp_btn = types.InlineKeyboardButton(
-        text="Выберите актив",
-        web_app=types.WebAppInfo(url=get_webapp_url())
-    )
-    keyboard.add(webapp_btn)
+    keyboard = get_webapp_keyboard()
     
     welcome_text = f"""
 🤖 Привет, {user_name}! Меня зовут **Доки**!
@@ -372,12 +373,7 @@ def help_command(message):
 💡 **Совет:** Используйте веб-каталог для быстрого выбора и скачивания документов!
 """
     
-    keyboard = types.InlineKeyboardMarkup()
-    webapp_btn = types.InlineKeyboardButton(
-        "Выберите актив", 
-        web_app=types.WebAppInfo(url=get_webapp_url())
-    )
-    keyboard.add(webapp_btn)
+    keyboard = get_webapp_keyboard()
     
     bot.send_message(
         message.chat.id,
@@ -403,22 +399,24 @@ def contacts_command(message):
 📋 **Веб-каталог доступен 24/7**
 """
     
-    keyboard = types.InlineKeyboardMarkup()
-    webapp_btn = types.InlineKeyboardButton(
-        "Выберите актив", 
-        web_app=types.WebAppInfo(url=get_webapp_url())
-    )
+    inline = types.InlineKeyboardMarkup()
     email_btn = types.InlineKeyboardButton(
         "📧 Написать на почту", 
         url=f"mailto:{EMAIL_USER}"
     )
-    keyboard.add(webapp_btn)
-    keyboard.add(email_btn)
+    inline.add(email_btn)
     
     bot.send_message(
         message.chat.id,
         contacts_text,
-        reply_markup=keyboard,
+        reply_markup=inline,
+        parse_mode='Markdown'
+    )
+    # Отдельным сообщением показываем кнопку открытия WebApp через reply-клавиатуру
+    bot.send_message(
+        message.chat.id,
+        "Откройте каталог документов:",
+        reply_markup=get_webapp_keyboard(),
         parse_mode='Markdown'
     )
 
@@ -659,13 +657,8 @@ def handle_text_messages(message):
 💡 **Откройте каталог для удобного выбора:**"""
     
     keyboard = types.InlineKeyboardMarkup()
-    webapp_btn = types.InlineKeyboardButton(
-        "Выберите актив", 
-        web_app=types.WebAppInfo(url=get_webapp_url())
-    )
     email_btn = types.InlineKeyboardButton("📧 Отправить email", callback_data="send_email")
     help_btn = types.InlineKeyboardButton("ℹ️ Справка", callback_data="help")
-    keyboard.add(webapp_btn)
     keyboard.add(email_btn)
     keyboard.add(help_btn)
     
@@ -674,6 +667,13 @@ def handle_text_messages(message):
         response_text, 
         parse_mode='Markdown',
         reply_markup=keyboard
+    )
+    # Отдельным сообщением показываем кнопку открытия WebApp через reply-клавиатуру
+    bot.send_message(
+        message.chat.id,
+        "Откройте каталог документов:",
+        reply_markup=get_webapp_keyboard(),
+        parse_mode='Markdown'
     )
 
 def handle_email_input(message):
