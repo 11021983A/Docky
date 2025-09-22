@@ -256,15 +256,34 @@ def send_email_with_document(recipient_email: str, asset_type: str, user_name: s
             })
             
             if response.status_code == 200:
-                attachment = MIMEBase('application', 'octet-stream')
+                import mimetypes
+                from urllib.parse import quote
+
+                filename = asset['filename']
+                guessed_type, _ = mimetypes.guess_type(filename)
+                if not guessed_type:
+                    guessed_type = 'application/octet-stream'
+                maintype, subtype = guessed_type.split('/', 1)
+
+                attachment = MIMEBase(maintype, subtype)
                 attachment.set_payload(response.content)
                 encoders.encode_base64(attachment)
-                attachment.add_header(
-                    'Content-Disposition',
-                    f'attachment; filename="{asset["filename"]}"'
-                )
+
+                # Устанавливаем корректные параметры имени файла (RFC 2231) для Unicode
+                try:
+                    # Основной заголовок
+                    attachment.add_header('Content-Disposition', 'attachment', filename=filename)
+                    # Дублируем имя в RFC 2231 (для почтовых клиентов, не поддерживающих Unicode в filename)
+                    attachment.set_param('filename*', "UTF-8''" + quote(filename), header='Content-Disposition')
+                    # Добавляем имя в Content-Type
+                    attachment.set_param('name', filename)
+                    attachment.set_param('name*', "UTF-8''" + quote(filename))
+                except Exception as _e:
+                    # Фолбэк: только ASCII-совместимый заголовок
+                    attachment.add_header('Content-Disposition', 'attachment', filename='document.docx')
+
                 msg.attach(attachment)
-                logger.info(f"Документ {asset['filename']} прикреплен к письму, размер: {len(response.content)} байт")
+                logger.info(f"Документ {filename} прикреплен к письму, MIME: {guessed_type}, размер: {len(response.content)} байт")
             else:
                 logger.warning(f"Не удалось загрузить документ: HTTP {response.status_code}")
                 
