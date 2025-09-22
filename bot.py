@@ -70,6 +70,13 @@ bot = telebot.TeleBot(BOT_TOKEN)
 # Flask приложение для health check
 app = Flask(__name__)
 
+def get_webapp_url() -> str:
+    """Возвращает URL WebApp с параметром версии для обхода кеша в мобильном Telegram."""
+    try:
+        return f"{WEBAPP_URL}?v={PROCESS_ID}"
+    except Exception:
+        return WEBAPP_URL
+
 @app.route('/')
 def home():
     return jsonify({"status": "alive", "bot": "Доки", "version": "1.0"})
@@ -312,7 +319,7 @@ def start_command(message):
     keyboard = types.InlineKeyboardMarkup()
     webapp_btn = types.InlineKeyboardButton(
         text="Выберите актив",
-        web_app=types.WebAppInfo(url=WEBAPP_URL)
+        web_app=types.WebAppInfo(url=get_webapp_url())
     )
     keyboard.add(webapp_btn)
     
@@ -368,7 +375,7 @@ def help_command(message):
     keyboard = types.InlineKeyboardMarkup()
     webapp_btn = types.InlineKeyboardButton(
         "Выберите актив", 
-        web_app=types.WebAppInfo(url=WEBAPP_URL)
+        web_app=types.WebAppInfo(url=get_webapp_url())
     )
     keyboard.add(webapp_btn)
     
@@ -399,7 +406,7 @@ def contacts_command(message):
     keyboard = types.InlineKeyboardMarkup()
     webapp_btn = types.InlineKeyboardButton(
         "Выберите актив", 
-        web_app=types.WebAppInfo(url=WEBAPP_URL)
+        web_app=types.WebAppInfo(url=get_webapp_url())
     )
     email_btn = types.InlineKeyboardButton(
         "📧 Написать на почту", 
@@ -525,7 +532,7 @@ def handle_web_app_data(message):
                 keyboard = types.InlineKeyboardMarkup()
                 webapp_btn = types.InlineKeyboardButton(
                     "Выбрать другой актив", 
-                    web_app=types.WebAppInfo(url=WEBAPP_URL)
+                    web_app=types.WebAppInfo(url=get_webapp_url())
                 )
                 keyboard.add(webapp_btn)
                 
@@ -572,7 +579,7 @@ def handle_web_app_data(message):
                 keyboard = types.InlineKeyboardMarkup()
                 webapp_btn = types.InlineKeyboardButton(
                     "Выбрать другой актив", 
-                    web_app=types.WebAppInfo(url=WEBAPP_URL)
+                    web_app=types.WebAppInfo(url=get_webapp_url())
                 )
                 keyboard.add(webapp_btn)
                 
@@ -654,7 +661,7 @@ def handle_text_messages(message):
     keyboard = types.InlineKeyboardMarkup()
     webapp_btn = types.InlineKeyboardButton(
         "Выберите актив", 
-        web_app=types.WebAppInfo(url=WEBAPP_URL)
+        web_app=types.WebAppInfo(url=get_webapp_url())
     )
     email_btn = types.InlineKeyboardButton("📧 Отправить email", callback_data="send_email")
     help_btn = types.InlineKeyboardButton("ℹ️ Справка", callback_data="help")
@@ -723,7 +730,7 @@ def handle_email_input(message):
         keyboard = types.InlineKeyboardMarkup()
         webapp_btn = types.InlineKeyboardButton(
             "Выбрать другой актив", 
-            web_app=types.WebAppInfo(url=WEBAPP_URL)
+            web_app=types.WebAppInfo(url=get_webapp_url())
         )
         email_btn = types.InlineKeyboardButton("📧 Отправить еще", callback_data="send_email")
         keyboard.add(webapp_btn)
