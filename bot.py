@@ -527,18 +527,10 @@ def handle_web_app_data(message):
 
 📄 Нужны документы для другого актива? Откройте каталог снова!"""
                 
-                keyboard = types.InlineKeyboardMarkup()
-                webapp_btn = types.InlineKeyboardButton(
-                    "Выбрать другой актив", 
-                    web_app=types.WebAppInfo(url=get_webapp_url())
-                )
-                keyboard.add(webapp_btn)
-                
                 bot.send_message(
                     message.chat.id, 
                     response_text, 
-                    parse_mode='Markdown',
-                    reply_markup=keyboard
+                    parse_mode='Markdown'
                 )
                 
                 # Уведомление админу
@@ -574,14 +566,7 @@ def handle_web_app_data(message):
 📄 **Актив:** {asset['icon']} {asset['title']}
 📂 **Файл:** {asset['filename']}"""
                 
-                keyboard = types.InlineKeyboardMarkup()
-                webapp_btn = types.InlineKeyboardButton(
-                    "Выбрать другой актив", 
-                    web_app=types.WebAppInfo(url=get_webapp_url())
-                )
-                keyboard.add(webapp_btn)
-                
-                bot.reply_to(message, response_text, parse_mode='Markdown', reply_markup=keyboard)
+                bot.reply_to(message, response_text, parse_mode='Markdown')
         
         # Обработка тестовых данных
         elif action == 'test':
@@ -727,20 +712,10 @@ def handle_email_input(message):
 
 📄 Нужны документы для другого актива?"""
         
-        keyboard = types.InlineKeyboardMarkup()
-        webapp_btn = types.InlineKeyboardButton(
-            "Выбрать другой актив", 
-            web_app=types.WebAppInfo(url=get_webapp_url())
-        )
-        email_btn = types.InlineKeyboardButton("📧 Отправить еще", callback_data="send_email")
-        keyboard.add(webapp_btn)
-        keyboard.add(email_btn)
-        
         bot.send_message(
             message.chat.id, 
             response_text, 
-            parse_mode='Markdown',
-            reply_markup=keyboard
+            parse_mode='Markdown'
         )
         
         # Уведомление админу
