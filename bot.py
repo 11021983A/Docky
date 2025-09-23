@@ -143,7 +143,7 @@ ASSETS = {
         'url': 'https://github.com/11021983A/Docky/raw/main/Бизнес_КИ.docx'
     },
     'property-complex': {
-        'icon': '🏗️',
+        'icon': '🗝️',
         'title': 'Комплекс имущества',
         'description': 'Имущественные комплексы',
         'filename': 'Бизнес_КИ.docx',
@@ -256,15 +256,34 @@ def send_email_with_document(recipient_email: str, asset_type: str, user_name: s
             })
             
             if response.status_code == 200:
-                attachment = MIMEBase('application', 'octet-stream')
+                import mimetypes
+                from urllib.parse import quote
+
+                filename = asset['filename']
+                guessed_type, _ = mimetypes.guess_type(filename)
+                if not guessed_type:
+                    guessed_type = 'application/octet-stream'
+                maintype, subtype = guessed_type.split('/', 1)
+
+                attachment = MIMEBase(maintype, subtype)
                 attachment.set_payload(response.content)
                 encoders.encode_base64(attachment)
-                attachment.add_header(
-                    'Content-Disposition',
-                    f'attachment; filename="{asset["filename"]}"'
-                )
+
+                # Устанавливаем корректные параметры имени файла (RFC 2231) для Unicode
+                try:
+                    # Основной заголовок
+                    attachment.add_header('Content-Disposition', 'attachment', filename=filename)
+                    # Дублируем имя в RFC 2231 (для почтовых клиентов, не поддерживающих Unicode в filename)
+                    attachment.set_param('filename*', "UTF-8''" + quote(filename), header='Content-Disposition')
+                    # Добавляем имя в Content-Type
+                    attachment.set_param('name', filename)
+                    attachment.set_param('name*', "UTF-8''" + quote(filename))
+                except Exception as _e:
+                    # Фолбэк: только ASCII-совместимый заголовок
+                    attachment.add_header('Content-Disposition', 'attachment', filename='document.docx')
+
                 msg.attach(attachment)
-                logger.info(f"Документ {asset['filename']} прикреплен к письму, размер: {len(response.content)} байт")
+                logger.info(f"Документ {filename} прикреплен к письму, MIME: {guessed_type}, размер: {len(response.content)} байт")
             else:
                 logger.warning(f"Не удалось загрузить документ: HTTP {response.status_code}")
                 
@@ -330,8 +349,8 @@ def start_command(message):
 📋 Я помогаю с документами для залоговой службы Сбера.
 
 🚀 **Что я умею:**
-- Показать перечень требуемых для залоговой службы Банка документов
-- Отправить документы на email  
+• Показать перечень требуемых для залоговой службы Банка документов
+• Отправить документы на email  
 
 📱 **Нажмите кнопку ниже**, чтобы открыть удобный каталог с документами прямо в Telegram!
 """
@@ -363,10 +382,10 @@ def help_command(message):
     help_text += f"""
 
 **Команды:**
-- `/start` - Открыть каталог
-- `/help` - Эта справка
-- `/contacts` - Контактная информация
-- `/test_email` - Тестовая отправка email
+• `/start` - Открыть каталог
+• `/help` - Эта справка
+• `/contacts` - Контактная информация
+• `/test_email` - Тестовая отправка email
 
 **Веб-приложение:** {WEBAPP_URL}
 
@@ -527,22 +546,20 @@ def handle_web_app_data(message):
 
 📄 Нужны документы для другого актива? Откройте каталог снова!"""
                 
-                keyboard = types.InlineKeyboardMarkup()
-                webapp_btn = types.InlineKeyboardButton(
-                    "Выбрать другой актив", 
-                    web_app=types.WebAppInfo(url=get_webapp_url())
-                )
-                keyboard.add(webapp_btn)
-                
                 bot.send_message(
                     message.chat.id, 
                     response_text, 
-                    parse_mode='Markdown',
-                    reply_markup=keyboard
+                    parse_mode='Markdown'
                 )
                 
-                # НЕ ОТПРАВЛЯЕМ уведомление админу здесь - убираем дублирующее сообщение
-                
+                # Уведомление админу
+                if ADMIN_CHAT_ID:
+                    admin_msg = f"📧 Email отправлен\n👤 {user_name}\n📄 {asset['title']}\n📧 {email}"
+                    try:
+                        bot.send_message(ADMIN_CHAT_ID, admin_msg)
+                        logger.info("Уведомление админу отправлено")
+                    except Exception as e:
+                        logger.error(f"Ошибка отправки админу: {e}")
             else:
                 logger.error(f"ОШИБКА ОТПРАВКИ EMAIL на {email}")
                 error_text = f"""⚠️ **Ошибка отправки**
@@ -550,9 +567,9 @@ def handle_web_app_data(message):
 Не удалось отправить документы на {email}
 
 Попробуйте:
-- Проверить правильность email
-- Использовать команду /test_email
-- Написать нам напрямую: {EMAIL_USER}"""
+• Проверить правильность email
+• Использовать команду /test_email
+• Написать нам напрямую: {EMAIL_USER}"""
                 
                 bot.send_message(message.chat.id, error_text, parse_mode='Markdown')
         
@@ -568,14 +585,7 @@ def handle_web_app_data(message):
 📄 **Актив:** {asset['icon']} {asset['title']}
 📂 **Файл:** {asset['filename']}"""
                 
-                keyboard = types.InlineKeyboardMarkup()
-                webapp_btn = types.InlineKeyboardButton(
-                    "Выбрать другой актив", 
-                    web_app=types.WebAppInfo(url=get_webapp_url())
-                )
-                keyboard.add(webapp_btn)
-                
-                bot.reply_to(message, response_text, parse_mode='Markdown', reply_markup=keyboard)
+                bot.reply_to(message, response_text, parse_mode='Markdown')
         
         # Обработка тестовых данных
         elif action == 'test':
@@ -652,8 +662,7 @@ def handle_text_messages(message):
     
     keyboard = types.InlineKeyboardMarkup()
     email_btn = types.InlineKeyboardButton("📧 Отправить email", callback_data="send_email")
-    help
-help_btn = types.InlineKeyboardButton("❓ Справка", callback_data="help")
+    help_btn = types.InlineKeyboardButton("ℹ️ Справка", callback_data="help")
     keyboard.add(email_btn)
     keyboard.add(help_btn)
     
@@ -722,24 +731,20 @@ def handle_email_input(message):
 
 📄 Нужны документы для другого актива?"""
         
-        keyboard = types.InlineKeyboardMarkup()
-        webapp_btn = types.InlineKeyboardButton(
-            "Выбрать другой актив", 
-            web_app=types.WebAppInfo(url=get_webapp_url())
-        )
-        email_btn = types.InlineKeyboardButton("📧 Отправить еще", callback_data="send_email")
-        keyboard.add(webapp_btn)
-        keyboard.add(email_btn)
-        
         bot.send_message(
             message.chat.id, 
             response_text, 
-            parse_mode='Markdown',
-            reply_markup=keyboard
+            parse_mode='Markdown'
         )
         
-        # НЕ ОТПРАВЛЯЕМ уведомление админу здесь - убираем дублирующее сообщение
-        
+        # Уведомление админу
+        if ADMIN_CHAT_ID:
+            admin_msg = f"📧 Email отправлен через Telegram кнопки\n👤 {user_name}\n📄 {asset['title']}\n📧 {email}"
+            try:
+                bot.send_message(ADMIN_CHAT_ID, admin_msg)
+                logger.info("Уведомление админу отправлено")
+            except Exception as e:
+                logger.error(f"Ошибка отправки админу: {e}")
     else:
         logger.error(f"❌ ОШИБКА ОТПРАВКИ EMAIL через Telegram кнопки на {email}")
         error_text = f"""⚠️ **Ошибка отправки**
@@ -747,9 +752,9 @@ def handle_email_input(message):
 Не удалось отправить документы на {email}
 
 Попробуйте:
-- Проверить правильность email
-- Использовать команду /test_email
-- Написать нам напрямую: {EMAIL_USER}"""
+• Проверить правильность email
+• Использовать команду /test_email
+• Написать нам напрямую: {EMAIL_USER}"""
         
         bot.send_message(message.chat.id, error_text, parse_mode='Markdown')
 
