@@ -552,18 +552,7 @@ def handle_web_app_data(message):
                     parse_mode='Markdown'
                 )
                 
-                # Уведомление админу
-                if ADMIN_CHAT_ID:
-                    admin_msg = f"📧 Email отправлен\n👤 {user_name}\n📄 {asset['title']}\n📧 {email}"
-                    try:
-                        bot.send_message(ADMIN_CHAT_ID, admin_msg)
-                        logger.info("Уведомление админу отправлено")
-                    except Exception as e:
-                        logger.error(f"Ошибка отправки админу: {e}")
-            else:
-                logger.error(f"ОШИБКА ОТПРАВКИ EMAIL на {email}")
-                error_text = f"""⚠️ **Ошибка отправки**
-
+               
 Не удалось отправить документы на {email}
 
 Попробуйте:
