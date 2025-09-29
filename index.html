@@ -437,12 +437,56 @@
                 description: 'Права на жилую недвижимость',
                 filename: 'Перечень документов для актива_ИПС_жилье.docx',
                 url: 'https://github.com/11021983A/Docky/raw/main/Перечень документов для актива_ИПС_жилье.docx'
+            },
+            // Новые кнопки
+            'commercial-property': {
+                icon: '🏪',
+                title: 'Имущественные права на коммерцию',
+                description: 'Коммерческая недвижимость',
+                filename: 'Перечень документов для актива_Коммерция.docx',
+                url: 'https://github.com/11021983A/Docky/raw/main/Перечень документов для актива_Коммерция.docx'
+            },
+            'residential-property': {
+                icon: '🏘️',
+                title: 'Жилая недвижимость (квартиры)',
+                description: 'Квартиры и жилые помещения',
+                filename: 'Перечень документов для актива_Квартиры.docx',
+                url: 'https://github.com/11021983A/Docky/raw/main/Перечень документов для актива_Квартиры.docx'
+            },
+            'industrial-property': {
+                icon: '🏭',
+                title: 'Производственная/с/х недвижимость',
+                description: 'Производственные и сельскохозяйственные объекты',
+                filename: 'Перечень документов для актива_Производство.docx',
+                url: 'https://github.com/11021983A/Docky/raw/main/Перечень документов для актива_Производство.docx'
+            },
+            'vehicles': {
+                icon: '🚛',
+                title: 'Автотранспорт/спецтехника',
+                description: 'Транспортные средства и спецтехника',
+                filename: 'Перечень документов для актива_Транспорт.docx',
+                url: 'https://github.com/11021983A/Docky/raw/main/Перечень документов для актива_Транспорт.docx'
+            },
+            'inventory': {
+                icon: '🛒',
+                title: 'ТМЦ (товары в обороте)',
+                description: 'Товарно-материальные ценности',
+                filename: 'Перечень документов для актива_ТМЦ.docx',
+                url: 'https://github.com/11021983A/Docky/raw/main/Перечень документов для актива_ТМЦ.docx'
+            },
+            'railway-cars': {
+                icon: '🚂',
+                title: 'Вагоны',
+                description: 'Железнодорожные вагоны',
+                filename: 'Перечень документов для актива_Вагоны.docx',
+                url: 'https://github.com/11021983A/Docky/raw/main/Перечень документов для актива_Вагоны.docx'
             }
         };
         
         let tg = null;
         let isTelegramWebApp = false;
         let selectedAsset = null;
+        let pendingAction = null;
         
         // Инициализация Telegram WebApp
         function initTelegramWebApp() {
@@ -666,301 +710,6 @@
             showNotification('Режим браузера: функция недоступна', 'error');
             if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Отправить'; }
             if (cancelBtn) { cancelBtn.disabled = false; }
-        }
-        
-        // Отправка email через MainButton (для мобильных устройств)
-        function sendEmailViaMainButton() {
-            console.log('📱 Отправка через MainButton');
-            
-            if (!tg || !tg.MainButton) {
-                console.log('❌ MainButton недоступен, пробуем стандартный способ');
-                setTimeout(() => {
-                    sendDataAndClose();
-                }, 1500);
-                return;
-            }
-            
-            // Настраиваем MainButton
-            tg.MainButton.setText('Отправляем документы...');
-            tg.MainButton.show();
-            
-            // Обработчик клика на MainButton
-            tg.MainButton.onClick(() => {
-                console.log('📱 MainButton нажат - отправляем данные');
-                
-                try {
-                    // Пытаемся отправить данные
-                    tg.sendData(JSON.stringify(pendingAction));
-                    console.log('✅ Данные отправлены через MainButton');
-                    
-                    // Показываем уведомление
-                    showNotification('Документы отправлены!', 'success');
-                    
-                    // Закрываем WebApp через 2 секунды
-                    setTimeout(() => {
-                        if (tg.close) {
-                            tg.close();
-                        }
-                    }, 2000);
-                    
-                } catch (error) {
-                    console.error('❌ Ошибка отправки через MainButton:', error);
-                    showNotification('Ошибка отправки: ' + error.message, 'error');
-                    
-                    // Пробуем альтернативный способ
-                    setTimeout(() => {
-                        tryAlternativeSend();
-                    }, 1000);
-                }
-            });
-        }
-        
-        // Альтернативный способ отправки
-        function tryAlternativeSend() {
-            console.log('🔄 Пробуем альтернативный способ отправки');
-            
-            // Способ 1: Через изменение URL
-            try {
-                const urlParams = new URLSearchParams();
-                urlParams.set('action', pendingAction.action);
-                urlParams.set('email', pendingAction.email);
-                urlParams.set('asset_type', pendingAction.asset_type);
-                
-                const newUrl = window.location.origin + window.location.pathname + '?' + urlParams.toString();
-                window.history.replaceState({}, '', newUrl);
-                console.log('📱 URL изменен:', newUrl);
-                
-                // Попытка отправки через sendData с задержкой
-                setTimeout(() => {
-                    try {
-                        tg.sendData(JSON.stringify(pendingAction));
-                        console.log('✅ Данные отправлены через URL изменение');
-                    } catch (e) {
-                        console.error('❌ Ошибка через URL:', e);
-                        showNotification('Не удалось отправить данные', 'error');
-                    }
-                }, 1000);
-                
-            } catch (error) {
-                console.error('❌ Ошибка альтернативного способа:', error);
-                showNotification('Критическая ошибка отправки', 'error');
-            }
-        }
-        
-        // Отправка email через Telegram кнопки
-        function sendEmailViaTelegram() {
-            if (!selectedAsset) {
-                showNotification('Сначала выберите актив', 'error');
-                return;
-            }
-            
-            console.log('📱 Отправка email через Telegram кнопки');
-            console.log('Выбранный актив:', selectedAsset);
-            
-            // Показываем инструкцию пользователю
-            const asset = assets[selectedAsset];
-            const instructionText = `
-📧 **Отправка документов через Telegram**
-
-📄 **Выбранный актив:** ${asset.icon} ${asset.title}
-
-**Инструкция:**
-1. Закройте это окно (нажмите кнопку "Назад" или "Закрыть")
-2. В чате с ботом нажмите кнопку "📧 Отправить email"
-3. Выберите "${asset.title}" из списка
-4. Введите ваш email адрес
-5. Документы будут отправлены автоматически
-
-✅ **Этот способ работает на всех устройствах!**
-            `;
-            
-            // Создаем модальное окно с инструкцией
-            const modal = document.createElement('div');
-            modal.className = 'modal active';
-            modal.innerHTML = `
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h3>📧 Отправка через Telegram</h3>
-                    </div>
-                    <div style="padding: 20px; line-height: 1.6;">
-                        ${instructionText}
-                    </div>
-                    <div class="modal-buttons">
-                        <button class="btn btn-primary" onclick="closeInstructionModal()">
-                            Понятно, закрыть
-                        </button>
-                    </div>
-                </div>
-            `;
-            
-            document.body.appendChild(modal);
-            
-            // Сохраняем информацию об активе для справки
-            localStorage.setItem('lastSelectedAsset', selectedAsset);
-            console.log('📱 Информация об активе сохранена:', selectedAsset);
-        }
-        
-        // Закрытие модального окна с инструкцией
-        function closeInstructionModal() {
-            const modal = document.querySelector('.modal');
-            if (modal) {
-                modal.remove();
-            }
-            
-            // Закрываем WebApp
-            setTimeout(() => {
-                if (tg && tg.close) {
-                    tg.close();
-                }
-            }, 500);
-        }
-        
-        // Функция для отправки данных и закрытия WebApp
-        function sendDataAndClose() {
-            if (!pendingAction) {
-                console.log('⚠️ Нет данных для отправки');
-                return;
-            }
-            
-            console.log('📤 ОТПРАВЛЯЕМ ДАННЫЕ:', JSON.stringify(pendingAction));
-            console.log('🔍 Диагностика Telegram WebApp:');
-            console.log('- isTelegramWebApp:', isTelegramWebApp);
-            console.log('- tg объект:', tg);
-            console.log('- tg.sendData функция:', typeof tg?.sendData);
-            console.log('- Платформа:', tg?.platform);
-            console.log('- Версия:', tg?.version);
-            console.log('- User Agent:', navigator.userAgent);
-            
-            if (isTelegramWebApp && tg) {
-                // Специальная обработка для мобильных устройств
-                if (tg.platform === 'ios' || tg.platform === 'android') {
-                    console.log('📱 МОБИЛЬНАЯ ПЛАТФОРМА - используем специальную логику');
-                    sendDataMobile();
-                } else {
-                    console.log('💻 ДЕСКТОПНАЯ ПЛАТФОРМА - используем стандартную логику');
-                    sendDataDesktop();
-                }
-            } else {
-                console.log('⚠️ Telegram WebApp недоступен - работаем в режиме браузера');
-                showNotification('Режим браузера: функция недоступна', 'error');
-            }
-        }
-        
-        // Отправка данных для мобильных устройств
-        function sendDataMobile() {
-            console.log('📱 Отправка данных для мобильных устройств');
-            
-            try {
-                // Метод 1: Прямая отправка через sendData
-                if (typeof tg.sendData === 'function') {
-                    console.log('📱 Метод 1: Прямая отправка через sendData');
-                    tg.sendData(JSON.stringify(pendingAction));
-                    console.log('✅ Данные отправлены через sendData');
-                    
-                    // Не закрываем WebApp сразу на мобильных устройствах
-                    setTimeout(() => {
-                        console.log('📱 Закрываем WebApp через 2 секунды');
-                        if (tg.close) {
-                            tg.close();
-                        }
-                    }, 2000);
-                    return;
-                }
-                
-                // Метод 2: Через MainButton
-                if (tg.MainButton) {
-                    console.log('📱 Метод 2: Через MainButton');
-                    tg.MainButton.setText('Отправляем...');
-                    tg.MainButton.show();
-                    
-                    tg.MainButton.onClick(() => {
-                        try {
-                            tg.sendData(JSON.stringify(pendingAction));
-                            console.log('✅ Данные отправлены через MainButton');
-                        } catch (e) {
-                            console.error('❌ Ошибка через MainButton:', e);
-                        }
-                    });
-                    return;
-                }
-                
-                // Метод 3: Через HapticFeedback (для мобильных)
-                if (tg.HapticFeedback) {
-                    console.log('📱 Метод 3: Через HapticFeedback');
-                    tg.HapticFeedback.impactOccurred('medium');
-                    
-                    // Попытка отправки через событие
-                    setTimeout(() => {
-                        try {
-                            tg.sendData(JSON.stringify(pendingAction));
-                            console.log('✅ Данные отправлены через HapticFeedback');
-                        } catch (e) {
-                            console.error('❌ Ошибка через HapticFeedback:', e);
-                        }
-                    }, 500);
-                    return;
-                }
-                
-                // Метод 4: Через URL параметры (запасной вариант)
-                console.log('📱 Метод 4: Через URL параметры');
-                try {
-                    const urlParams = new URLSearchParams();
-                    urlParams.set('action', pendingAction.action);
-                    urlParams.set('email', pendingAction.email);
-                    urlParams.set('asset_type', pendingAction.asset_type);
-                    
-                    const url = window.location.origin + window.location.pathname + '?' + urlParams.toString();
-                    console.log('📱 URL с параметрами:', url);
-                    
-                    // Попытка отправки через изменение URL
-                    window.history.replaceState({}, '', url);
-                    
-                    // Попытка отправки через sendData с задержкой
-                    setTimeout(() => {
-                        try {
-                            tg.sendData(JSON.stringify(pendingAction));
-                            console.log('✅ Данные отправлены через URL параметры');
-                        } catch (e) {
-                            console.error('❌ Ошибка через URL параметры:', e);
-                        }
-                    }, 1000);
-                    return;
-                } catch (e) {
-                    console.error('❌ Ошибка URL параметров:', e);
-                }
-                
-                // Метод 5: Последняя попытка - прямая отправка
-                console.log('📱 Метод 5: Последняя попытка');
-                try {
-                    tg.sendData(JSON.stringify(pendingAction));
-                    console.log('✅ Данные отправлены (последняя попытка)');
-                } catch (e) {
-                    console.error('❌ Все методы не сработали:', e);
-                    showNotification('Ошибка отправки на мобильном устройстве', 'error');
-                }
-                
-            } catch (error) {
-                console.error('❌ Критическая ошибка на мобильном устройстве:', error);
-                showNotification('Критическая ошибка: ' + error.message, 'error');
-            }
-        }
-        
-        // Отправка данных для десктопных устройств
-        function sendDataDesktop() {
-            console.log('💻 Отправка данных для десктопных устройств');
-            
-            try {
-                if (typeof tg.sendData === 'function') {
-                    tg.sendData(JSON.stringify(pendingAction));
-                    console.log('✅ Данные отправлены через sendData (десктоп)');
-                } else {
-                    console.log('❌ sendData недоступен на десктопе');
-                    showNotification('Ошибка: sendData недоступен', 'error');
-                }
-            } catch (error) {
-                console.error('❌ Ошибка на десктопе:', error);
-                showNotification('Ошибка отправки данных: ' + error.message, 'error');
-            }
         }
         
         // Показ уведомлений
