@@ -145,13 +145,13 @@
         }
         
         .action-buttons {
-            display: flex;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
             gap: 10px;
             margin-top: 20px;
         }
         
         .btn {
-            flex: 1;
             padding: 12px 20px;
             border: none;
             border-radius: 10px;
@@ -178,6 +178,52 @@
         .btn:hover {
             transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+        
+        .templates-list {
+            display: none;
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 15px;
+            animation: slideIn 0.3s ease;
+        }
+        
+        .templates-list.active {
+            display: block;
+        }
+        
+        .templates-list h4 {
+            font-size: 16px;
+            margin-bottom: 10px;
+            color: #333;
+        }
+        
+        .template-item {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            margin: 5px 0;
+            background: white;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .template-item:hover {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            transform: translateX(5px);
+        }
+        
+        .template-item .template-icon {
+            margin-right: 10px;
+            font-size: 18px;
+        }
+        
+        .template-item .template-name {
+            flex: 1;
+            font-size: 14px;
         }
         
         .modal {
@@ -342,9 +388,22 @@
                 <button class="btn btn-primary" onclick="downloadDocument()">
                     <span>⬇️</span> Скачать перечень
                 </button>
+                <button class="btn btn-secondary" onclick="showTemplates()">
+                    <span>📋</span> Посмотреть шаблоны документов
+                </button>
                 <button class="btn btn-secondary" onclick="sendToEmail()">
                     <span>📧</span> Отправить на email
                 </button>
+                <button class="btn btn-primary" onclick="downloadAllTemplates()">
+                    <span>📦</span> Скачать шаблоны одним архивом
+                </button>
+            </div>
+            
+            <div class="templates-list" id="templatesList">
+                <h4>📋 Шаблоны документов</h4>
+                <div id="templatesContainer">
+                    <!-- Шаблоны добавляются через JavaScript -->
+                </div>
             </div>
         </div>
     </div>
@@ -381,6 +440,68 @@
     
     <script>
         // КРИТИЧЕСКИ ВАЖНО: Ключи должны точно совпадать с bot.py!
+        
+        // ОБНОВИТЬ ЗДЕСЬ: Добавьте ссылки на реальные шаблоны для каждого актива
+        // Сейчас используются заглушки с одним и тем же файлом
+        const assetTemplates = {
+            'business-center': [
+                { name: 'Шаблон письма АТБ', url: 'https://github.com/11021983A/Docky/raw/main/Шаблон письма АТБ.docx', icon: '📄' },
+                { name: 'Шаблон заявления', url: 'https://github.com/11021983A/Docky/raw/main/Шаблон письма АТБ.docx', icon: '📝' }
+            ],
+            'shopping-center': [
+                { name: 'Шаблон письма АТБ', url: 'https://github.com/11021983A/Docky/raw/main/Шаблон письма АТБ.docx', icon: '📄' },
+                { name: 'Шаблон заявления', url: 'https://github.com/11021983A/Docky/raw/main/Шаблон письма АТБ.docx', icon: '📝' }
+            ],
+            'warehouse': [
+                { name: 'Шаблон письма АТБ', url: 'https://github.com/11021983A/Docky/raw/main/Шаблон письма АТБ.docx', icon: '📄' },
+                { name: 'Шаблон заявления', url: 'https://github.com/11021983A/Docky/raw/main/Шаблон письма АТБ.docx', icon: '📝' }
+            ],
+            'hotel': [
+                { name: 'Шаблон письма АТБ', url: 'https://github.com/11021983A/Docky/raw/main/Шаблон письма АТБ.docx', icon: '📄' },
+                { name: 'Шаблон заявления', url: 'https://github.com/11021983A/Docky/raw/main/Шаблон письма АТБ.docx', icon: '📝' }
+            ],
+            'business': [
+                { name: 'Шаблон письма АТБ', url: 'https://github.com/11021983A/Docky/raw/main/Шаблон письма АТБ.docx', icon: '📄' },
+                { name: 'Шаблон заявления', url: 'https://github.com/11021983A/Docky/raw/main/Шаблон письма АТБ.docx', icon: '📝' }
+            ],
+            'property-complex': [
+                { name: 'Шаблон письма АТБ', url: 'https://github.com/11021983A/Docky/raw/main/Шаблон письма АТБ.docx', icon: '📄' },
+                { name: 'Шаблон заявления', url: 'https://github.com/11021983A/Docky/raw/main/Шаблон письма АТБ.docx', icon: '📝' }
+            ],
+            'equipment': [
+                { name: 'Шаблон письма АТБ', url: 'https://github.com/11021983A/Docky/raw/main/Шаблон письма АТБ.docx', icon: '📄' },
+                { name: 'Шаблон заявления', url: 'https://github.com/11021983A/Docky/raw/main/Шаблон письма АТБ.docx', icon: '📝' }
+            ],
+            'housing-rights': [
+                { name: 'Шаблон письма АТБ', url: 'https://github.com/11021983A/Docky/raw/main/Шаблон письма АТБ.docx', icon: '📄' },
+                { name: 'Шаблон заявления', url: 'https://github.com/11021983A/Docky/raw/main/Шаблон письма АТБ.docx', icon: '📝' }
+            ],
+            'commercial-property': [
+                { name: 'Шаблон письма АТБ', url: 'https://github.com/11021983A/Docky/raw/main/Шаблон письма АТБ.docx', icon: '📄' },
+                { name: 'Шаблон заявления', url: 'https://github.com/11021983A/Docky/raw/main/Шаблон письма АТБ.docx', icon: '📝' }
+            ],
+            'residential-property': [
+                { name: 'Шаблон письма АТБ', url: 'https://github.com/11021983A/Docky/raw/main/Шаблон письма АТБ.docx', icon: '📄' },
+                { name: 'Шаблон заявления', url: 'https://github.com/11021983A/Docky/raw/main/Шаблон письма АТБ.docx', icon: '📝' }
+            ],
+            'industrial-property': [
+                { name: 'Шаблон письма АТБ', url: 'https://github.com/11021983A/Docky/raw/main/Шаблон письма АТБ.docx', icon: '📄' },
+                { name: 'Шаблон заявления', url: 'https://github.com/11021983A/Docky/raw/main/Шаблон письма АТБ.docx', icon: '📝' }
+            ],
+            'vehicles': [
+                { name: 'Шаблон письма АТБ', url: 'https://github.com/11021983A/Docky/raw/main/Шаблон письма АТБ.docx', icon: '📄' },
+                { name: 'Шаблон заявления', url: 'https://github.com/11021983A/Docky/raw/main/Шаблон письма АТБ.docx', icon: '📝' }
+            ],
+            'inventory': [
+                { name: 'Шаблон письма АТБ', url: 'https://github.com/11021983A/Docky/raw/main/Шаблон письма АТБ.docx', icon: '📄' },
+                { name: 'Шаблон заявления', url: 'https://github.com/11021983A/Docky/raw/main/Шаблон письма АТБ.docx', icon: '📝' }
+            ],
+            'railway-cars': [
+                { name: 'Шаблон письма АТБ', url: 'https://github.com/11021983A/Docky/raw/main/Шаблон письма АТБ.docx', icon: '📄' },
+                { name: 'Шаблон заявления', url: 'https://github.com/11021983A/Docky/raw/main/Шаблон письма АТБ.docx', icon: '📝' }
+            ]
+        };
+        
         const assets = {
             'business-center': {
                 icon: '🏢',
@@ -438,13 +559,12 @@
                 filename: 'Перечень документов для актива_ИПС_жилье.docx',
                 url: 'https://github.com/11021983A/Docky/raw/main/Перечень документов для актива_ИПС_жилье.docx'
             },
-            // Новые кнопки
             'commercial-property': {
                 icon: '🏪',
                 title: 'Имущественные права на коммерцию',
                 description: 'Коммерческая недвижимость',
                 filename: 'Перечень документов для актива_ИПС_комнед.docx',
-                url: 'https://github.com/11021983A/Docky/raw/main/Перечень документов для актива_ИПС_комнедя.docx'
+                url: 'https://github.com/11021983A/Docky/raw/main/Перечень документов для актива_ИПС_комнед.docx'
             },
             'residential-property': {
                 icon: '🏘️',
@@ -499,45 +619,21 @@
                 console.log('✅ TELEGRAM WEB APP ПОДКЛЮЧЕН:');
                 console.log('Версия:', tg.version);
                 console.log('Платформа:', tg.platform);
-                console.log('sendData доступен:', typeof tg.sendData);
-                console.log('MainButton доступен:', typeof tg.MainButton);
-                console.log('close доступен:', typeof tg.close);
-                console.log('HapticFeedback доступен:', typeof tg.HapticFeedback);
-                console.log('User Agent:', navigator.userAgent);
-                console.log('Все методы tg:', Object.keys(tg));
                 
                 // Дополнительная настройка для мобильных устройств
                 if (tg.platform === 'ios' || tg.platform === 'android') {
                     console.log('📱 МОБИЛЬНАЯ ПЛАТФОРМА ОБНАРУЖЕНА:', tg.platform);
-                    console.log('📱 Детальная диагностика мобильного устройства:');
-                    console.log('- initData:', tg.initData);
-                    console.log('- initDataUnsafe:', tg.initDataUnsafe);
-                    console.log('- colorScheme:', tg.colorScheme);
-                    console.log('- themeParams:', tg.themeParams);
                     
-                    // Настройка MainButton для мобильных устройств
                     if (tg.MainButton) {
                         tg.MainButton.hide();
-                        console.log('📱 MainButton скрыт');
                     }
                     
-                    // Настройка BackButton для мобильных устройств
                     if (tg.BackButton) {
                         tg.BackButton.hide();
-                        console.log('📱 BackButton скрыт');
                     }
-                    
-                    // Настройка HapticFeedback для мобильных устройств
-                    if (tg.HapticFeedback) {
-                        console.log('📱 HapticFeedback настроен');
-                    }
-                } else {
-                    console.log('💻 ДЕСКТОПНАЯ ПЛАТФОРМА:', tg.platform);
                 }
             } else {
                 console.log('⚠️ TELEGRAM WEB APP НЕ НАЙДЕН');
-                console.log('window.Telegram:', window.Telegram);
-                console.log('window.Telegram.WebApp:', window.Telegram?.WebApp);
                 isTelegramWebApp = false;
             }
         }
@@ -581,6 +677,9 @@
             selectedAsset = assetKey;
             const asset = assets[assetKey];
             
+            // Скрываем список шаблонов при выборе нового актива
+            document.getElementById('templatesList').classList.remove('active');
+            
             document.querySelectorAll('.asset-card').forEach((card, index) => {
                 const currentKey = Object.keys(assets)[index];
                 if (currentKey === assetKey) {
@@ -603,6 +702,85 @@
             }, 100);
         }
         
+        // Показ шаблонов документов
+        function showTemplates() {
+            if (!selectedAsset) return;
+            
+            console.log('📋 Показываем шаблоны для актива:', selectedAsset);
+            const templatesList = document.getElementById('templatesList');
+            const templatesContainer = document.getElementById('templatesContainer');
+            
+            // Очищаем контейнер
+            templatesContainer.innerHTML = '';
+            
+            // Получаем шаблоны для текущего актива
+            const templates = assetTemplates[selectedAsset] || [];
+            
+            if (templates.length === 0) {
+                templatesContainer.innerHTML = '<p style="color: #666;">Шаблоны для данного актива не найдены</p>';
+            } else {
+                templates.forEach(template => {
+                    const templateItem = document.createElement('div');
+                    templateItem.className = 'template-item';
+                    templateItem.onclick = () => downloadTemplate(template);
+                    templateItem.innerHTML = `
+                        <span class="template-icon">${template.icon}</span>
+                        <span class="template-name">${template.name}</span>
+                    `;
+                    templatesContainer.appendChild(templateItem);
+                });
+            }
+            
+            // Показываем/скрываем список
+            templatesList.classList.toggle('active');
+        }
+        
+        // Скачивание шаблона
+        function downloadTemplate(template) {
+            console.log('⬇️ Скачивание шаблона:', template.name);
+            
+            const link = document.createElement('a');
+            link.href = template.url;
+            link.download = template.name + '.docx';
+            link.target = '_blank';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            showNotification(`Скачивается шаблон: ${template.name}`, 'success');
+        }
+        
+        // Скачивание всех шаблонов архивом
+        function downloadAllTemplates() {
+            if (!selectedAsset) return;
+            
+            console.log('📦 Скачивание всех шаблонов для актива:', selectedAsset);
+            
+            // ОБНОВИТЬ ЗДЕСЬ: Добавьте реальные ссылки на архивы для каждого актива
+            // Временная заглушка - скачиваем шаблоны по отдельности
+            const templates = assetTemplates[selectedAsset] || [];
+            
+            if (templates.length === 0) {
+                showNotification('Шаблоны для данного актива не найдены', 'error');
+                return;
+            }
+            
+            showNotification('Начинается загрузка шаблонов...', 'success');
+            
+            // Временное решение - скачиваем каждый шаблон отдельно
+            templates.forEach((template, index) => {
+                setTimeout(() => {
+                    const link = document.createElement('a');
+                    link.href = template.url;
+                    link.download = template.name + '.docx';
+                    link.target = '_blank';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                }, index * 500); // Задержка между скачиваниями
+            });
+        }
+        
         // Скачивание документа
         function downloadDocument() {
             if (!selectedAsset) return;
@@ -620,8 +798,6 @@
             
             showNotification('Документ загружается...', 'success');
             
-            // НЕ закрываем WebApp автоматически после скачивания
-            // Пользователь может продолжить работу
             console.log('✅ Документ скачан, WebApp остается открытым');
         }
         
@@ -769,6 +945,3 @@
                 initializeApp();
             }
         }, 500);
-    </script>
-</body>
-</html>
