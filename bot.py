@@ -111,100 +111,57 @@ ASSETS = {
         'icon': '🏢',
         'title': 'Бизнес-центр',
         'description': 'Офисные здания и бизнес-центры',
-        'filename': 'Перечень документов для актива_БЦ.docx',
-        'url': 'https://github.com/11021983A/Docky/raw/main/Перечень документов для актива_БЦ.docx'
+        'filename': 'БЦ.docx',
+        'url': 'https://github.com/11021983A/Docky/raw/main/БЦ.docx'
     },
     'shopping-center': {
         'icon': '🛍️',
         'title': 'Торговый центр',
         'description': 'Торговые центры и комплексы',
-        'filename': 'Перечень документов для актива_ТЦ.docx',
-        'url': 'https://github.com/11021983A/Docky/raw/main/Перечень документов для актива_ТЦ.docx'
+        'filename': 'ТЦ.docx',
+        'url': 'https://github.com/11021983A/Docky/raw/main/ТЦ.docx'
     },
     'warehouse': {
         'icon': '📦',
         'title': 'Складской комплекс',
         'description': 'Складские помещения и комплексы',
-        'filename': 'Перечень документов для актива_Склад.docx',
-        'url': 'https://github.com/11021983A/Docky/raw/main/Перечень документов для актива_Склад.docx'
+        'filename': 'Склад.docx',
+        'url': 'https://github.com/11021983A/Docky/raw/main/Склад.docx'
     },
     'hotel': {
         'icon': '🏨',
         'title': 'Гостиница',
         'description': 'Гостиничные комплексы',
-        'filename': 'Перечень документов для актива_Гостиница.docx',
-        'url': 'https://github.com/11021983A/Docky/raw/main/Перечень документов для актива_Гостиница.docx'
+        'filename': 'Гостиница.docx',
+        'url': 'https://github.com/11021983A/Docky/raw/main/Гостиница.docx'
     },
     'business': {
         'icon': '💼',
         'title': 'Бизнес',
         'description': 'Доли в бизнесе и акции',
-        'filename': 'Перечень документов для актива_Бизнес_КИ.docx',
-        'url': 'https://github.com/11021983A/Docky/raw/main/Перечень документов для актива_Бизнес_КИ.docx'
+        'filename': 'Бизнес_КИ.docx',
+        'url': 'https://github.com/11021983A/Docky/raw/main/Бизнес_КИ.docx'
     },
     'property-complex': {
-        'icon': '🏗️',
+        'icon': '🗝️',
         'title': 'Комплекс имущества',
         'description': 'Имущественные комплексы',
-        'filename': 'Перечень документов для актива_Бизнес_КИ.docx',
-        'url': 'https://github.com/11021983A/Docky/raw/main/Перечень документов для актива_Бизнес_КИ.docx'
+        'filename': 'Бизнес_КИ.docx',
+        'url': 'https://github.com/11021983A/Docky/raw/main/Бизнес_КИ.docx'
     },
     'equipment': {
         'icon': '⚙️',
         'title': 'Машины и оборудование',
         'description': 'Промышленное оборудование',
-        'filename': 'Перечень документов для актива_МиО.docx',
-        'url': 'https://github.com/11021983A/Docky/raw/main/Перечень документов для актива_МиО.docx'
+        'filename': 'МиО.docx',
+        'url': 'https://github.com/11021983A/Docky/raw/main/МиО.docx'
     },
     'housing-rights': {
         'icon': '🏠',
         'title': 'ИПС на жилье',
         'description': 'Права на жилую недвижимость',
-        'filename': 'Перечень документов для актива_ИПС_жилье.docx',
-        'url': 'https://github.com/11021983A/Docky/raw/main/Перечень документов для актива_ИПС_жилье.docx'
-    },
-    # Новые кнопки
-    'commercial-property': {
-        'icon': '🏪',
-        'title': 'Имущественные права на коммерцию',
-        'description': 'Коммерческая недвижимость и права на нее',
-        'filename': 'Перечень документов для актива_ИПС_комнед.docx',
-        'url': 'https://github.com/11021983A/Docky/raw/main/Перечень документов для актива_ИПС_комнед.docx'
-    },
-    'residential-property': {
-        'icon': '🏘️',
-        'title': 'Жилая недвижимость (квартиры)',
-        'description': 'Квартиры и другая жилая недвижимость',
-        'filename': 'Перечень документов для актива_Жилая недвижимость.docx',
-        'url': 'https://github.com/11021983A/Docky/raw/main/Перечень документов для актива_Жилая недвижимость.docx'
-    },
-    'industrial-property': {
-        'icon': '🏭',
-        'title': 'Производственная/сельскохозяйственная недвижимость',
-        'description': 'Производственные и сельскохозяйственные объекты',
-        'filename': 'Перечень документов для актива_Производств_сельхоз недв-ть.docx',
-        'url': 'https://github.com/11021983A/Docky/raw/main/Перечень документов для актива_Производств_сельхоз недв-ть.docx'
-    },
-    'vehicles': {
-        'icon': '🚛',
-        'title': 'Автотранспорт/спецтехника',
-        'description': 'Автомобили, грузовики, спецтехника',
-        'filename': 'Перечень документов для актива_ТС.docx',
-        'url': 'https://github.com/11021983A/Docky/raw/main/Перечень документов для актива_ТСт.docx'
-    },
-    'inventory': {
-        'icon': '📦',
-        'title': 'ТМЦ (товары в обороте)',
-        'description': 'Товарно-материальные ценности в обороте',
-        'filename': 'Перечень документов для актива_ТМЦ.docx',
-        'url': 'https://github.com/11021983A/Docky/raw/main/Перечень документов для актива_ТМЦ.docx'
-    },
-    'railway-cars': {
-        'icon': '🚂',
-        'title': 'Вагоны',
-        'description': 'Железнодорожные вагоны',
-        'filename': 'Перечень документов для актива_Вагоны.docx',
-        'url': 'https://github.com/11021983A/Docky/raw/main/Перечень документов для актива_Вагоны.docx'
+        'filename': 'ИПС_жилье.docx',
+        'url': 'https://github.com/11021983A/Docky/raw/main/ИПС_жилье.docx'
     }
 }
 
@@ -299,34 +256,15 @@ def send_email_with_document(recipient_email: str, asset_type: str, user_name: s
             })
             
             if response.status_code == 200:
-                import mimetypes
-                from urllib.parse import quote
-
-                filename = asset['filename']
-                guessed_type, _ = mimetypes.guess_type(filename)
-                if not guessed_type:
-                    guessed_type = 'application/octet-stream'
-                maintype, subtype = guessed_type.split('/', 1)
-
-                attachment = MIMEBase(maintype, subtype)
+                attachment = MIMEBase('application', 'octet-stream')
                 attachment.set_payload(response.content)
                 encoders.encode_base64(attachment)
-
-                # Устанавливаем корректные параметры имени файла (RFC 2231) для Unicode
-                try:
-                    # Основной заголовок
-                    attachment.add_header('Content-Disposition', 'attachment', filename=filename)
-                    # Дублируем имя в RFC 2231 (для почтовых клиентов, не поддерживающих Unicode в filename)
-                    attachment.set_param('filename*', "UTF-8''" + quote(filename), header='Content-Disposition')
-                    # Добавляем имя в Content-Type
-                    attachment.set_param('name', filename)
-                    attachment.set_param('name*', "UTF-8''" + quote(filename))
-                except Exception as _e:
-                    # Фолбэк: только ASCII-совместимый заголовок
-                    attachment.add_header('Content-Disposition', 'attachment', filename='document.docx')
-
+                attachment.add_header(
+                    'Content-Disposition',
+                    f'attachment; filename="{asset["filename"]}"'
+                )
                 msg.attach(attachment)
-                logger.info(f"Документ {filename} прикреплен к письму, MIME: {guessed_type}, размер: {len(response.content)} байт")
+                logger.info(f"Документ {asset['filename']} прикреплен к письму, размер: {len(response.content)} байт")
             else:
                 logger.warning(f"Не удалось загрузить документ: HTTP {response.status_code}")
                 
@@ -589,10 +527,18 @@ def handle_web_app_data(message):
 
 📄 Нужны документы для другого актива? Откройте каталог снова!"""
                 
+                keyboard = types.InlineKeyboardMarkup()
+                webapp_btn = types.InlineKeyboardButton(
+                    "Выбрать другой актив", 
+                    web_app=types.WebAppInfo(url=get_webapp_url())
+                )
+                keyboard.add(webapp_btn)
+                
                 bot.send_message(
                     message.chat.id, 
                     response_text, 
-                    parse_mode='Markdown'
+                    parse_mode='Markdown',
+                    reply_markup=keyboard
                 )
                 
                 # Уведомление админу
@@ -628,7 +574,14 @@ def handle_web_app_data(message):
 📄 **Актив:** {asset['icon']} {asset['title']}
 📂 **Файл:** {asset['filename']}"""
                 
-                bot.reply_to(message, response_text, parse_mode='Markdown')
+                keyboard = types.InlineKeyboardMarkup()
+                webapp_btn = types.InlineKeyboardButton(
+                    "Выбрать другой актив", 
+                    web_app=types.WebAppInfo(url=get_webapp_url())
+                )
+                keyboard.add(webapp_btn)
+                
+                bot.reply_to(message, response_text, parse_mode='Markdown', reply_markup=keyboard)
         
         # Обработка тестовых данных
         elif action == 'test':
@@ -774,10 +727,20 @@ def handle_email_input(message):
 
 📄 Нужны документы для другого актива?"""
         
+        keyboard = types.InlineKeyboardMarkup()
+        webapp_btn = types.InlineKeyboardButton(
+            "Выбрать другой актив", 
+            web_app=types.WebAppInfo(url=get_webapp_url())
+        )
+        email_btn = types.InlineKeyboardButton("📧 Отправить еще", callback_data="send_email")
+        keyboard.add(webapp_btn)
+        keyboard.add(email_btn)
+        
         bot.send_message(
             message.chat.id, 
             response_text, 
-            parse_mode='Markdown'
+            parse_mode='Markdown',
+            reply_markup=keyboard
         )
         
         # Уведомление админу
