@@ -238,14 +238,38 @@ def main():
     flask_thread.start()
     logger.info(f"🌐 Flask healthcheck на порту {PORT}")
     
-    # Удаление webhook (если был)
-    try:
-        bot.remove_webhook()
-    except Exception:
-        pass
-    
-    logger.info("✅ Бот готов к работе!")
-    bot.infinity_polling(timeout=30, long_polling_timeout=30, skip_pending=True)
+    # Агрессивная очистка webhook и старых подключений
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            logger.info(f"🔄 Попытка {attempt + 1}/{max_retries}: Очистка webhook...")
+            bot.remove_webhook(drop_pending_updates=True)
+            logger.info("✅ Webhook удалён")
+            
+            # Небольшая пауза, чтобы Telegram обработал запрос
+            import time
+            time.sleep(2)
+            
+            # Пробуем запустить polling
+            logger.info("✅ Бот готов к работе!")
+            bot.infinity_polling(timeout=30, long_polling_timeout=30, skip_pending=True)
+            break  # Если дошли сюда — всё ок, выходим из цикла
+            
+        except telebot.apihelper.ApiTelegramException as e:
+            if "409" in str(e) or "Conflict" in str(e):
+                logger.warning(f"⚠️ Конфликт (409): другая копия бота ещё работает. Повтор через 5 сек...")
+                import time
+                time.sleep(5)
+                if attempt == max_retries - 1:
+                    logger.error("❌ Не удалось запустить бота после 3 попыток. Проверьте, что нет других копий.")
+                    raise
+            else:
+                logger.error(f"❌ Ошибка Telegram API: {e}")
+                raise
+        except Exception as e:
+            logger.exception(f"❌ Неожиданная ошибка: {e}")
+            raise
 
 if __name__ == "__main__":
     main()
+
