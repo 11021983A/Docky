@@ -8,6 +8,7 @@ import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.base import MIMEBase
+from telebot.apihelper import ApiTelegramException
 from email import encoders
 import requests
 from flask import Flask, jsonify
@@ -244,19 +245,16 @@ def main():
     for attempt in range(max_retries):
         try:
             logger.info(f"🔄 Попытка {attempt + 1}/{max_retries}: Очистка webhook...")
-            bot.remove_webhook(drop_pending_updates=True)
+            # В старой версии библиотеки нельзя передать drop_pending_updates
+            bot.remove_webhook()
             logger.info("✅ Webhook удалён")
-            
-            # Небольшая пауза, чтобы Telegram обработал запрос
-            import time
             time.sleep(2)
-            
-            # Пробуем запустить polling
+
             logger.info("✅ Бот готов к работе!")
             bot.infinity_polling(timeout=30, long_polling_timeout=30, skip_pending=True)
-            break  # Если дошли сюда — всё ок, выходим из цикла
-            
-        except telebot.apihelper.ApiTelegramException as e:
+            break
+
+        except ApiTelegramException as e:
             if "409" in str(e) or "Conflict" in str(e):
                 logger.warning(f"⚠️ Конфликт (409): другая копия бота ещё работает. Повтор через 5 сек...")
                 import time
