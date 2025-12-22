@@ -14,7 +14,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s: %(mes
 logger = logging.getLogger(__name__)
 
 # Переменные окружения (обязательно задать на Render)
-BOTTOKEN = os.getenv("BOTTOKEN", "").strip()
+BOTTOKEN = os.getenv("BOT_TOKEN", "").strip()
 WEBAPPURL = os.getenv("WEBAPPURL", "https://11021983a.github.io/Docky/").strip()
 PORT = int(os.environ.get("PORT", "10000"))
 
