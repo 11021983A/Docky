@@ -65,11 +65,12 @@ def webapp_keyboard():
 # Flask для healthcheck (нужен Render)
 app = Flask(__name__)
 
-@app.get("/")
+@app.route("/")
 def home():
     return jsonify(status="ok", bot="DockyZS")
 
-@app.get("/health"):
+@app.route("/health")
+def health():
     return jsonify(status="healthy"), 200
 
 def run_flask():
@@ -89,7 +90,7 @@ def cmd_help(message):
 @bot.message_handler(content_types=["web_app_data"])
 def on_webapp_data(message):
     try:
-        raw = message.web_app_data.data  # <-- правильное имя поля
+        raw = message.web_app_data.data
         payload = json.loads(raw)
         action = payload.get("action")
         
