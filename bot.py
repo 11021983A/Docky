@@ -257,7 +257,6 @@ def main():
         except ApiTelegramException as e:
             if "409" in str(e) or "Conflict" in str(e):
                 logger.warning(f"⚠️ Конфликт (409): другая копия бота ещё работает. Повтор через 5 сек...")
-                import time
                 time.sleep(5)
                 if attempt == max_retries - 1:
                     logger.error("❌ Не удалось запустить бота после 3 попыток. Проверьте, что нет других копий.")
@@ -265,6 +264,7 @@ def main():
             else:
                 logger.error(f"❌ Ошибка Telegram API: {e}")
                 raise
+
         except Exception as e:
             logger.exception(f"❌ Неожиданная ошибка: {e}")
             raise
