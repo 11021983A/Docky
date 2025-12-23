@@ -70,6 +70,27 @@ ASSETS = {
         "filename": "docs_equipment.docx",
         "url": "https://github.com/11021983A/Docky/raw/main/Перечень документов для актива_МиО.docx",
     },
+    "property-complex": {
+        "icon": "🏢",
+        "title": "Комплекс имущества", 
+        "description": "Документы для оформления залога комплекса имущества",
+        "filename": "Перечень документов для актива_ИК.docx",
+        "url": "https://github.com/11021983A/Docky/raw/main/Перечень документов для актива_Бизнес_КИ.docx",
+    },
+    "business": {
+        "icon": "💼",
+        "title": "Бизнес",
+        "description": "Документы для оформления залога бизнеса",
+        "filename": "docs_business.docx", 
+        "url": "https://github.com/11021983A/Docky/raw/main/Перечень документов для актива_Бизнес_КИ.docx",
+    },
+    "housing-rights": {
+        "icon": "🏠",
+        "title": "Права на жильё",
+        "description": "Документы для оформления залога прав на жильё",
+        "filename": "docs_housing_rights.docx",
+        "url": "https://github.com/11021983A/Docky/raw/main/Перечень документов для актива_ИПС_жилье.docx",
+        },
 }
 
 bot = telebot.TeleBot(BOT_TOKEN, parse_mode="Markdown")
@@ -192,9 +213,9 @@ def on_webapp_data(message):
                 bot.reply_to(message, "Неизвестный актив.")
         
         # Отправка на email
-        elif action == "sendemail":
+        elif action in ["sendemail", "send_email"]:  # Поддержка обоих вариантов
             email = payload.get("email", "").strip()
-            asset_key = payload.get("assettype")
+            asset_key = payload.get("assettype") or payload.get("asset_type")  # Поддержка обоих полей
             
             if not email:
                 bot.reply_to(message, "❌ Email не указан.")
