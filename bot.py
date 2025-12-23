@@ -148,10 +148,10 @@ def send_email_with_document(recipient_email, asset_key, username):
             logger.warning(f"⚠️ Не удалось скачать файл (HTTP {response.status_code})")
             return False
         
-        # Отправка через Gmail SMTP (SSL порт 465)
+        # Отправка через Yandex  SMTP (SSL порт 465)
         logger.info(f"Отправляю email на {recipient_email}...")
-        server = smtplib.SMTP_SSL('smtp.gmail.com', 465)
-        server.login(EMAIL_USER, EMAIL_PASSWORD)      
+        server = smtplib.SMTP_SSL('smtp.yandex.ru', 465)  # Yandex SSL
+        server.login(EMAIL_USER, EMAIL_PASSWORD)
         server.send_message(msg)
         server.quit()
         
