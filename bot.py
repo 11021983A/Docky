@@ -148,11 +148,10 @@ def send_email_with_document(recipient_email, asset_key, username):
             logger.warning(f"⚠️ Не удалось скачать файл (HTTP {response.status_code})")
             return False
         
-        # Отправка через Gmail SMTP
+        # Отправка через Gmail SMTP (SSL порт 465)
         logger.info(f"Отправляю email на {recipient_email}...")
-        server = smtplib.SMTP('smtp.gmail.com', 587)
-        server.starttls()
-        server.login(EMAIL_USER, EMAIL_PASSWORD)
+        server = smtplib.SMTP_SSL('smtp.gmail.com', 465)
+        server.login(EMAIL_USER, EMAIL_PASSWORD)      
         server.send_message(msg)
         server.quit()
         
