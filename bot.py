@@ -175,6 +175,8 @@ def cmd_help(message):
 @bot.message_handler(content_types=["web_app_data"])
 def on_webapp_data(message):
     try:
+        logger.info(f"🧪 WEB_APP_DATA: {message.web_app_data}")
+        logger.info(f"🧪 RAW DATA: {getattr(message.web_app_data, 'data', 'NO DATA')}")
         raw = message.web_app_data.data
         payload = json.loads(raw)
         action = payload.get("action")
