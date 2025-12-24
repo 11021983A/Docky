@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Выберите актив</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
     <meta http-equiv="Pragma" content="no-cache"/>
     <meta http-equiv="Expires" content="0"/>
@@ -599,76 +600,59 @@
         // Подтверждение отправки email
         function confirmSendEmail() {
             const email = document.getElementById('emailInput').value.trim();
-            
             const submitBtn = document.querySelector('.modal-buttons .btn-primary');
             const cancelBtn = document.querySelector('.modal-buttons .btn-secondary');
             
             if (submitBtn) {
                 submitBtn.disabled = true;
-                submitBtn.textContent = 'Отправка...';
+                submitBtn.textContent = 'Отправляем...';
             }
-            if (cancelBtn) {
-                cancelBtn.disabled = true;
-            }
-            
-            console.log('📧 ПОПЫТКА ОТПРАВКИ EMAIL:', email);
-            console.log('Выбранный актив:', selectedAsset);
-            console.log('Telegram доступен?', isTelegramWebApp);
-            console.log('Объект tg:', tg);
+            if (cancelBtn) cancelBtn.disabled = true;
             
             if (!email) {
-                showNotification('Введите email адрес', 'error');
-                if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Отправить'; }
-                if (cancelBtn) { cancelBtn.disabled = false; }
-                return;
-            }
-            
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            if (!emailRegex.test(email)) {
-                showNotification('Неверный формат email', 'error');
-                if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Отправить'; }
-                if (cancelBtn) { cancelBtn.disabled = false; }
-                return;
-            }
-            
-            // Подготавливаем данные для отправки
-            const payload = {
-                action: 'send_email',
-                email: email,
-                asset_type: selectedAsset
-            };
-            
-            console.log('📤 ПОДГОТОВЛЕН PAYLOAD:', JSON.stringify(payload));
-            
-            // КРИТИЧЕСКО: вызывать sendData СИНХРОННО в рамках этого клика
-            if (isTelegramWebApp && tg && typeof tg.sendData === 'function') {
-                try {
-                    tg.sendData(JSON.stringify(payload));
-                    console.log('✅ sendData вызван синхронно');
-                    showNotification('Запрос отправлен в Telegram', 'success');
-                    // Оставляем WebApp открытым
-                    // Закрываем модалку, чтобы кнопка не "зависала"
-                    closeEmailModal();
-                    if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Отправить'; }
-                    if (cancelBtn) { cancelBtn.disabled = false; }
-                    return;
-                } catch (error) {
-                    console.error('❌ Ошибка sendData:', error);
-                    showNotification('Ошибка sendData: ' + error.message, 'error');
-                    if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Отправить'; }
-                    if (cancelBtn) { cancelBtn.disabled = false; }
-                    return;
+                showNotification('❌ Введите email!', 'error');
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Отправить на email';
                 }
+                if (cancelBtn) cancelBtn.disabled = false;
+                return;
             }
             
-            // Браузерный/десктопный запасной путь
-            closeEmailModal();
-            showNotification('Режим браузера: функция недоступна', 'error');
-            if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Отправить'; }
-            if (cancelBtn) { cancelBtn.disabled = false; }
+            const asset = assets[selectedAsset];
+            
+            // EmailJS - твои ключи
+            emailjs.send('service_ew2wnl3', 'template_hmpouwb', {
+                to_email: email,
+                asset_title: asset.title,
+                asset_filename: asset.filename,
+                user_name: tg?.initDataUnsafe?.user?.first_name || 'Клиент'
+            }, '1BjG5uWKJyQVwin3g')
+            .then(function(response) {
+                showNotification('✅ Отправлено на ' + email + '!', 'success');
+                closeEmailModal();
+                // Уведомление боту
+                if (tg && tg.sendData) {
+                    tg.sendData(JSON.stringify({
+                        action: "sendemail",
+                        email: email,
+                        assettype: selectedAsset
+                    }));
+                }
+            }, function(error) {
+                showNotification('❌ Ошибка отправки', 'error');
+                console.error('EmailJS error:', error);
+            })
+            .finally(() => {
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Отправить на email';
+                }
+                if (cancelBtn) cancelBtn.disabled = false;
+            });
         }
+
         
-        // Отправка email через MainButton (для мобильных устройств)
         function sendEmailViaMainButton() {
             console.log('📱 Отправка через MainButton');
             
@@ -1020,6 +1004,8 @@
                 initializeApp();
             }
         }, 500);
+        // EmailJS
+        emailjs.init("1BjG5uWKJyQVwin3g");
     </script>
 </body>
 </html>
