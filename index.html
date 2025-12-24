@@ -601,18 +601,21 @@
           const email = emailInput.value;
           const asset = assets[selectedAsset];
           
-            const params = new URLSearchParams({
-              service_id: 'service_ew2wnl3',
-              template_id: 'template_hmpouwb',
-              user_id: '1BjG5uWKJyQVwin3g'
-            });
-            fetch(`https://old-pond-68ce.alexey-edemskiy.workers.dev?${params}`,
+          if (!asset || !email) {
+            showNotification('Выберите актив и введите email', 'error');
+            return;
+          }
+        
+          const params = new URLSearchParams({
+            service_id: 'service_ew2wnl3',
+            template_id: 'template_hmpouwb',
+            user_id: '1BjG5uWKJyQVwin3g'
+          });
+        
+          fetch(`https://old-pond-68ce.alexey-edemskiy.workers.dev?${params}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              service_id: 'service_ew2wnl3',
-              template_id: 'template_hmpouwb',
-              user_id: '1BjG5uWKJyQVwin3g',
               template_params: {
                 to_email: email,
                 asset_title: asset.title,
@@ -621,20 +624,19 @@
               }
             })
           })
-          .then(response => {
-            if (response.ok) {
+          .then(response => response.json())
+          .then(data => {
+            if (data.status === 'ok') {
               showNotification(`✅ Отправлено на ${email}`, 'success');
               closeEmailModal();
             } else {
-              throw new Error('Серверная ошибка');
+              throw new Error(data.message || 'Ошибка');
             }
           })
           .catch(error => {
-            console.error('EmailJS error:', error);
             showNotification('❌ Ошибка отправки', 'error');
           });
         }
-
 
         
         function sendEmailViaMainButton() {
