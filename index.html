@@ -1,1025 +1,118 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Выберите актив</title>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
-    <meta http-equiv="Pragma" content="no-cache"/>
-    <meta http-equiv="Expires" content="0"/>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            color: #333;
-            padding-top: 10px;
-        }
-        
-        .container {
-            max-width: 500px;
-            margin: 0 auto;
-            padding: 0 10px;
-        }
-        
-        .main-header {
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 15px;
-            padding: 15px;
-            margin-bottom: 15px;
-            text-align: center;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-        }
-        
-        .main-header h1 {
-            font-size: 22px;
-            color: #333;
-            margin-bottom: 5px;
-        }
-        
-        .main-header p {
-            font-size: 14px;
-            color: #666;
-        }
-        
-        .assets-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-        
-        .asset-card {
-            background: white;
-            border-radius: 12px;
-            padding: 15px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 100px;
-        }
-        
-        .asset-card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
-        }
-        
-        .asset-card.selected {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-        }
-        
-        .asset-icon {
-            font-size: 32px;
-            margin-bottom: 8px;
-        }
-        
-        .asset-title {
-            font-size: 14px;
-            font-weight: 600;
-            line-height: 1.2;
-        }
-        
-        .asset-details {
-            background: white;
-            border-radius: 15px;
-            padding: 20px;
-            margin-bottom: 20px;
-            display: none;
-            animation: slideIn 0.3s ease;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-        }
-        
-        .asset-details.active {
-            display: block;
-        }
-        
-        @keyframes slideIn {
-            from {
-                opacity: 0;
-                transform: translateY(-10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        
-        .detail-header {
-            display: flex;
-            align-items: center;
-            margin-bottom: 15px;
-            padding-bottom: 15px;
-            border-bottom: 2px solid #f0f0f0;
-        }
-        
-        .detail-icon {
-            font-size: 36px;
-            margin-right: 15px;
-        }
-        
-        .detail-title {
-            flex: 1;
-        }
-        
-        .detail-title h3 {
-            font-size: 18px;
-            margin-bottom: 5px;
-        }
-        
-        .detail-title p {
-            font-size: 14px;
-            color: #666;
-        }
-        
-        .action-buttons {
-            display: flex;
-            gap: 10px;
-            margin-top: 20px;
-        }
-        
-        .btn {
-            flex: 1;
-            padding: 12px 20px;
-            border: none;
-            border-radius: 10px;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-        }
-        
-        .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-        }
-        
-        .btn-secondary {
-            background: #f0f0f0;
-            color: #333;
-        }
-        
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-        }
-        
-        .modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.5);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-            padding: 20px;
-        }
-        
-        .modal.active {
-            display: flex;
-        }
-        
-        .modal-content {
-            background: white;
-            border-radius: 15px;
-            padding: 25px;
-            max-width: 400px;
-            width: 100%;
-            animation: modalSlideIn 0.3s ease;
-        }
-        
-        @keyframes modalSlideIn {
-            from {
-                opacity: 0;
-                transform: scale(0.9);
-            }
-            to {
-                opacity: 1;
-                transform: scale(1);
-            }
-        }
-        
-        .modal-header {
-            margin-bottom: 20px;
-        }
-        
-        .modal-header h3 {
-            font-size: 20px;
-            margin-bottom: 5px;
-        }
-        
-        .modal-header p {
-            font-size: 14px;
-            color: #666;
-        }
-        
-        .form-group {
-            margin-bottom: 20px;
-        }
-        
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 600;
-            font-size: 14px;
-        }
-        
-        .form-group input {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid #e0e0e0;
-            border-radius: 10px;
-            font-size: 16px;
-            transition: border-color 0.3s ease;
-        }
-        
-        .form-group input:focus {
-            outline: none;
-            border-color: #667eea;
-        }
-        
-        .modal-buttons {
-            display: flex;
-            gap: 10px;
-        }
-        
-        .notification {
-            position: fixed;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: white;
-            padding: 15px 20px;
-            border-radius: 10px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-            display: none;
-            z-index: 2000;
-            animation: notificationSlide 0.3s ease;
-        }
-        
-        .notification.active {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        .notification.success {
-            background: #4caf50;
-            color: white;
-        }
-        
-        .notification.error {
-            background: #f44336;
-            color: white;
-        }
-        
-        @keyframes notificationSlide {
-            from {
-                opacity: 0;
-                transform: translate(-50%, -20px);
-            }
-            to {
-                opacity: 1;
-                transform: translate(-50%, 0);
-            }
-        }
-        
-        @media (max-width: 360px) {
-            .assets-grid {
-                grid-template-columns: 1fr;
-            }
-            
-            .asset-card {
-                min-height: 80px;
-            }
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="main-header">
-            <h1>Выберите тип актива</h1>
-            <p>Документы для залоговой службы</p>
-        </div>
-        
-        <div class="assets-grid" id="assetsGrid">
-            <!-- Активы добавляются через JavaScript -->
-        </div>
-        
-        <div class="asset-details" id="assetDetails">
-            <div class="detail-header">
-                <div class="detail-icon" id="detailIcon"></div>
-                <div class="detail-title">
-                    <h3 id="detailTitle"></h3>
-                    <p id="detailDescription"></p>
-                </div>
-            </div>
-            
-            <div class="info-section">
-                <p><strong>📄 Файл:</strong> <span id="detailFilename"></span></p>
-            </div>
-            
-            <div class="action-buttons">
-                <button class="btn btn-primary" onclick="downloadDocument()">
-                    <span>⬇️</span> Скачать
-                </button>
-                <button class="btn btn-secondary" onclick="sendToEmail()">
-                    <span>📧</span> На email
-                </button>
-            </div>
-        </div>
-    </div>
-    
-    <div class="modal" id="emailModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Отправка на email</h3>
-                <p>Документы будут отправлены на указанную почту с почтового ящика docs_zs@mail.ru</p>
-            </div>
-            
-            <div class="form-group">
-                <label for="emailInput">Email адрес</label>
-                <input 
-                    type="email" 
-                    id="emailInput" 
-                    placeholder="example@mail.ru"
-                    autocomplete="email"
-                >
-            </div>
-            
-            <div class="modal-buttons">
-                <button class="btn btn-primary" onclick="confirmSendEmail()">
-                    Отправить
-                </button>
-                <button class="btn btn-secondary" onclick="closeEmailModal()">
-                    Отмена
-                </button>
-            </div>
-        </div>
-    </div>
-    
-    <div class="notification" id="notification"></div>
-    
-    <script>
-        // КРИТИЧЕСКИ ВАЖНО: Ключи должны точно совпадать с bot.py!
-        const assets = {
-            'business-center': {
-                icon: '🏢',
-                title: 'Бизнес-центр',
-                description: 'Офисные здания',
-                filename: 'БЦ.docx',
-                url: 'https://github.com/11021983A/Docky/raw/main/Перечень документов для актива_БЦ.docx'
-            },
-            'shopping-center': {
-                icon: '🛍️',
-                title: 'Торговый центр',
-                description: 'Торговые комплексы',
-                filename: 'ТЦ.docx',
-                url: 'https://github.com/11021983A/Docky/raw/main/Перечень документов для актива_ТЦ.docx'
-            },
-            'warehouse': {
-                icon: '📦',
-                title: 'Складской комплекс',
-                description: 'Складские помещения',
-                filename: 'Склад.docx',
-                url: 'https://github.com/11021983A/Docky/raw/main/Перечень документов для актива_Склад.docx'
-            },
-            'hotel': {
-                icon: '🏨',
-                title: 'Гостиница',
-                description: 'Гостиничные комплексы',
-                filename: 'Гостиница.docx',
-                url: 'https://github.com/11021983A/Docky/raw/main/Перечень документов для актива_Гостиница.docx'
-            },
-            'business': {
-                icon: '💼',
-                title: 'Бизнес',
-                description: 'Доли и акции',
-                filename: 'Бизнес_КИ.docx',
-                url: 'https://github.com/11021983A/Docky/raw/main/Перечень документов для актива_Бизнес_КИ.docx'
-            },
-            'property-complex': {
-                icon: '🏗️',
-                title: 'Комплекс имущества',
-                description: 'Имущественные комплексы',
-                filename: 'Бизнес_КИ.docx',
-                url: 'https://github.com/11021983A/Docky/raw/main/Перечень документов для актива_Бизнес_КИ.docx'
-            },
-            'equipment': {
-                icon: '⚙️',
-                title: 'Машины и оборудование',
-                description: 'Промышленное оборудование',
-                filename: 'МиО.docx',
-                url: 'https://github.com/11021983A/Docky/raw/main/Перечень документов для актива_МиО.docx'
-            },
-            'housing-rights': {
-                icon: '🏠',
-                title: 'ИПС на жилье',
-                description: 'Права на жилую недвижимость',
-                filename: 'ИПС_жилье.docx',
-                url: 'https://github.com/11021983A/Docky/raw/main/Перечень документов для актива_ИПС_жилье.docx'
-            }
-        };
-        
-        let tg = null;
-        let isTelegramWebApp = false;
-        let selectedAsset = null;
-        
-        // Инициализация Telegram WebApp
-        function initTelegramWebApp() {
-            if (window.Telegram && window.Telegram.WebApp) {
-                tg = window.Telegram.WebApp;
-                isTelegramWebApp = true;
-                tg.ready();
-                tg.expand();
-                
-                console.log('✅ TELEGRAM WEB APP ПОДКЛЮЧЕН:');
-                console.log('Версия:', tg.version);
-                console.log('Платформа:', tg.platform);
-                console.log('sendData доступен:', typeof tg.sendData);
-                console.log('MainButton доступен:', typeof tg.MainButton);
-                console.log('close доступен:', typeof tg.close);
-                console.log('HapticFeedback доступен:', typeof tg.HapticFeedback);
-                console.log('User Agent:', navigator.userAgent);
-                console.log('Все методы tg:', Object.keys(tg));
-                
-                // Дополнительная настройка для мобильных устройств
-                if (tg.platform === 'ios' || tg.platform === 'android') {
-                    console.log('📱 МОБИЛЬНАЯ ПЛАТФОРМА ОБНАРУЖЕНА:', tg.platform);
-                    console.log('📱 Детальная диагностика мобильного устройства:');
-                    console.log('- initData:', tg.initData);
-                    console.log('- initDataUnsafe:', tg.initDataUnsafe);
-                    console.log('- colorScheme:', tg.colorScheme);
-                    console.log('- themeParams:', tg.themeParams);
-                    
-                    // Настройка MainButton для мобильных устройств
-                    if (tg.MainButton) {
-                        tg.MainButton.hide();
-                        console.log('📱 MainButton скрыт');
-                    }
-                    
-                    // Настройка BackButton для мобильных устройств
-                    if (tg.BackButton) {
-                        tg.BackButton.hide();
-                        console.log('📱 BackButton скрыт');
-                    }
-                    
-                    // Настройка HapticFeedback для мобильных устройств
-                    if (tg.HapticFeedback) {
-                        console.log('📱 HapticFeedback настроен');
-                    }
-                } else {
-                    console.log('💻 ДЕСКТОПНАЯ ПЛАТФОРМА:', tg.platform);
-                }
-            } else {
-                console.log('⚠️ TELEGRAM WEB APP НЕ НАЙДЕН');
-                console.log('window.Telegram:', window.Telegram);
-                console.log('window.Telegram.WebApp:', window.Telegram?.WebApp);
-                isTelegramWebApp = false;
-            }
-        }
-        
-        // Инициализация приложения
-        function initializeApp() {
-            console.log('🚀 Инициализация приложения...');
-            console.log('Доступные активы:', Object.keys(assets));
-            renderAssets();
-            
-            const urlParams = new URLSearchParams(window.location.search);
-            const assetParam = urlParams.get('asset');
-            if (assetParam && assets[assetParam]) {
-                console.log('🎯 Предвыбранный актив:', assetParam);
-                selectAsset(assetParam);
-            }
-        }
-        
-        // Отрисовка активов
-        function renderAssets() {
-            const grid = document.getElementById('assetsGrid');
-            grid.innerHTML = '';
-            
-            Object.entries(assets).forEach(([key, asset]) => {
-                const card = document.createElement('div');
-                card.className = 'asset-card';
-                card.onclick = () => selectAsset(key);
-                card.innerHTML = `
-                    <div class="asset-icon">${asset.icon}</div>
-                    <div class="asset-title">${asset.title}</div>
-                `;
-                grid.appendChild(card);
-            });
-            
-            console.log('✅ Активы отрисованы:', Object.keys(assets).length);
-        }
-        
-        // Выбор актива
-        function selectAsset(assetKey) {
-            console.log('📌 Выбран актив:', assetKey);
-            selectedAsset = assetKey;
-            const asset = assets[assetKey];
-            
-            document.querySelectorAll('.asset-card').forEach((card, index) => {
-                const currentKey = Object.keys(assets)[index];
-                if (currentKey === assetKey) {
-                    card.classList.add('selected');
-                } else {
-                    card.classList.remove('selected');
-                }
-            });
-            
-            document.getElementById('detailIcon').textContent = asset.icon;
-            document.getElementById('detailTitle').textContent = asset.title;
-            document.getElementById('detailDescription').textContent = asset.description;
-            document.getElementById('detailFilename').textContent = asset.filename;
-            
-            const details = document.getElementById('assetDetails');
-            details.classList.add('active');
-            
-            setTimeout(() => {
-                details.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }, 100);
-        }
-        
-        // Скачивание документа
-        function downloadDocument() {
-            if (!selectedAsset) return;
-            
-            console.log('⬇️ Скачивание документа:', selectedAsset);
-            const asset = assets[selectedAsset];
-            
-            const link = document.createElement('a');
-            link.href = asset.url;
-            link.download = asset.filename;
-            link.target = '_blank';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            
-            showNotification('Документ загружается...', 'success');
-            
-            // НЕ закрываем WebApp автоматически после скачивания
-            // Пользователь может продолжить работу
-            console.log('✅ Документ скачан, WebApp остается открытым');
-        }
-        
-        // Отправка на email
-        function sendToEmail() {
-            if (!selectedAsset) return;
-            
-            console.log('📧 Открытие модального окна для актива:', selectedAsset);
-            document.getElementById('emailModal').classList.add('active');
-            document.getElementById('emailInput').focus();
-        }
-        
-        // Закрытие модального окна
-        function closeEmailModal() {
-            document.getElementById('emailModal').classList.remove('active');
-            document.getElementById('emailInput').value = '';
-        }
-        
-        // Подтверждение отправки email
-        function confirmSendEmail() {
-            const email = document.getElementById('emailInput').value.trim();
-            
-            const submitBtn = document.querySelector('.modal-buttons .btn-primary');
-            const cancelBtn = document.querySelector('.modal-buttons .btn-secondary');
-            
-            if (submitBtn) {
-                submitBtn.disabled = true;
-                submitBtn.textContent = 'Отправка...';
-            }
-            if (cancelBtn) {
-                cancelBtn.disabled = true;
-            }
-            
-            console.log('📧 ПОПЫТКА ОТПРАВКИ EMAIL:', email);
-            console.log('Выбранный актив:', selectedAsset);
-            console.log('Telegram доступен?', isTelegramWebApp);
-            console.log('Объект tg:', tg);
-            
-            if (!email) {
-                showNotification('Введите email адрес', 'error');
-                if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Отправить'; }
-                if (cancelBtn) { cancelBtn.disabled = false; }
-                return;
-            }
-            
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            if (!emailRegex.test(email)) {
-                showNotification('Неверный формат email', 'error');
-                if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Отправить'; }
-                if (cancelBtn) { cancelBtn.disabled = false; }
-                return;
-            }
-            
-            // Подготавливаем данные для отправки
-            const payload = {
-                action: 'send_email',
-                email: email,
-                asset_type: selectedAsset
-            };
-            
-            console.log('📤 ПОДГОТОВЛЕН PAYLOAD:', JSON.stringify(payload));
-            
-            // КРИТИЧЕСКО: вызывать sendData СИНХРОННО в рамках этого клика
-            if (isTelegramWebApp && tg && typeof tg.sendData === 'function') {
-                try {
-                    tg.sendData(JSON.stringify(payload));
-                    console.log('✅ sendData вызван синхронно');
-                    showNotification('Запрос отправлен в Telegram', 'success');
-                    // Оставляем WebApp открытым
-                    // Закрываем модалку, чтобы кнопка не "зависала"
-                    closeEmailModal();
-                    if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Отправить'; }
-                    if (cancelBtn) { cancelBtn.disabled = false; }
-                    return;
-                } catch (error) {
-                    console.error('❌ Ошибка sendData:', error);
-                    showNotification('Ошибка sendData: ' + error.message, 'error');
-                    if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Отправить'; }
-                    if (cancelBtn) { cancelBtn.disabled = false; }
-                    return;
-                }
-            }
-            
-            // Браузерный/десктопный запасной путь
-            closeEmailModal();
-            showNotification('Режим браузера: функция недоступна', 'error');
-            if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Отправить'; }
-            if (cancelBtn) { cancelBtn.disabled = false; }
-        }
-        
-        // Отправка email через MainButton (для мобильных устройств)
-        function sendEmailViaMainButton() {
-            console.log('📱 Отправка через MainButton');
-            
-            if (!tg || !tg.MainButton) {
-                console.log('❌ MainButton недоступен, пробуем стандартный способ');
-                setTimeout(() => {
-                    sendDataAndClose();
-                }, 1500);
-                return;
-            }
-            
-            // Настраиваем MainButton
-            tg.MainButton.setText('Отправляем документы...');
-            tg.MainButton.show();
-            
-            // Обработчик клика на MainButton
-            tg.MainButton.onClick(() => {
-                console.log('📱 MainButton нажат - отправляем данные');
-                
-                try {
-                    // Пытаемся отправить данные
-                    tg.sendData(JSON.stringify(pendingAction));
-                    console.log('✅ Данные отправлены через MainButton');
-                    
-                    // Показываем уведомление
-                    showNotification('Документы отправлены!', 'success');
-                    
-                    // Закрываем WebApp через 2 секунды
-                    setTimeout(() => {
-                        if (tg.close) {
-                            tg.close();
-                        }
-                    }, 2000);
-                    
-                } catch (error) {
-                    console.error('❌ Ошибка отправки через MainButton:', error);
-                    showNotification('Ошибка отправки: ' + error.message, 'error');
-                    
-                    // Пробуем альтернативный способ
-                    setTimeout(() => {
-                        tryAlternativeSend();
-                    }, 1000);
-                }
-            });
-        }
-        
-        // Альтернативный способ отправки
-        function tryAlternativeSend() {
-            console.log('🔄 Пробуем альтернативный способ отправки');
-            
-            // Способ 1: Через изменение URL
-            try {
-                const urlParams = new URLSearchParams();
-                urlParams.set('action', pendingAction.action);
-                urlParams.set('email', pendingAction.email);
-                urlParams.set('asset_type', pendingAction.asset_type);
-                
-                const newUrl = window.location.origin + window.location.pathname + '?' + urlParams.toString();
-                window.history.replaceState({}, '', newUrl);
-                console.log('📱 URL изменен:', newUrl);
-                
-                // Попытка отправки через sendData с задержкой
-                setTimeout(() => {
-                    try {
-                        tg.sendData(JSON.stringify(pendingAction));
-                        console.log('✅ Данные отправлены через URL изменение');
-                    } catch (e) {
-                        console.error('❌ Ошибка через URL:', e);
-                        showNotification('Не удалось отправить данные', 'error');
-                    }
-                }, 1000);
-                
-            } catch (error) {
-                console.error('❌ Ошибка альтернативного способа:', error);
-                showNotification('Критическая ошибка отправки', 'error');
-            }
-        }
-        
-        // Отправка email через Telegram кнопки
-        function sendEmailViaTelegram() {
-            if (!selectedAsset) {
-                showNotification('Сначала выберите актив', 'error');
-                return;
-            }
-            
-            console.log('📱 Отправка email через Telegram кнопки');
-            console.log('Выбранный актив:', selectedAsset);
-            
-            // Показываем инструкцию пользователю
-            const asset = assets[selectedAsset];
-            const instructionText = `
-📧 **Отправка документов через Telegram**
-
-📄 **Выбранный актив:** ${asset.icon} ${asset.title}
-
-**Инструкция:**
-1. Закройте это окно (нажмите кнопку "Назад" или "Закрыть")
-2. В чате с ботом нажмите кнопку "📧 Отправить email"
-3. Выберите "${asset.title}" из списка
-4. Введите ваш email адрес
-5. Документы будут отправлены автоматически
-
-✅ **Этот способ работает на всех устройствах!**
-            `;
-            
-            // Создаем модальное окно с инструкцией
-            const modal = document.createElement('div');
-            modal.className = 'modal active';
-            modal.innerHTML = `
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h3>📧 Отправка через Telegram</h3>
-                    </div>
-                    <div style="padding: 20px; line-height: 1.6;">
-                        ${instructionText}
-                    </div>
-                    <div class="modal-buttons">
-                        <button class="btn btn-primary" onclick="closeInstructionModal()">
-                            Понятно, закрыть
-                        </button>
-                    </div>
-                </div>
-            `;
-            
-            document.body.appendChild(modal);
-            
-            // Сохраняем информацию об активе для справки
-            localStorage.setItem('lastSelectedAsset', selectedAsset);
-            console.log('📱 Информация об активе сохранена:', selectedAsset);
-        }
-        
-        // Закрытие модального окна с инструкцией
-        function closeInstructionModal() {
-            const modal = document.querySelector('.modal');
-            if (modal) {
-                modal.remove();
-            }
-            
-            // Закрываем WebApp
-            setTimeout(() => {
-                if (tg && tg.close) {
-                    tg.close();
-                }
-            }, 500);
-        }
-        
-        // Функция для отправки данных и закрытия WebApp
-        function sendDataAndClose() {
-            if (!pendingAction) {
-                console.log('⚠️ Нет данных для отправки');
-                return;
-            }
-            
-            console.log('📤 ОТПРАВЛЯЕМ ДАННЫЕ:', JSON.stringify(pendingAction));
-            console.log('🔍 Диагностика Telegram WebApp:');
-            console.log('- isTelegramWebApp:', isTelegramWebApp);
-            console.log('- tg объект:', tg);
-            console.log('- tg.sendData функция:', typeof tg?.sendData);
-            console.log('- Платформа:', tg?.platform);
-            console.log('- Версия:', tg?.version);
-            console.log('- User Agent:', navigator.userAgent);
-            
-            if (isTelegramWebApp && tg) {
-                // Специальная обработка для мобильных устройств
-                if (tg.platform === 'ios' || tg.platform === 'android') {
-                    console.log('📱 МОБИЛЬНАЯ ПЛАТФОРМА - используем специальную логику');
-                    sendDataMobile();
-                } else {
-                    console.log('💻 ДЕСКТОПНАЯ ПЛАТФОРМА - используем стандартную логику');
-                    sendDataDesktop();
-                }
-            } else {
-                console.log('⚠️ Telegram WebApp недоступен - работаем в режиме браузера');
-                showNotification('Режим браузера: функция недоступна', 'error');
-            }
-        }
-        
-        // Отправка данных для мобильных устройств
-        function sendDataMobile() {
-            console.log('📱 Отправка данных для мобильных устройств');
-            
-            try {
-                // Метод 1: Прямая отправка через sendData
-                if (typeof tg.sendData === 'function') {
-                    console.log('📱 Метод 1: Прямая отправка через sendData');
-                    tg.sendData(JSON.stringify(pendingAction));
-                    console.log('✅ Данные отправлены через sendData');
-                    
-                    // Не закрываем WebApp сразу на мобильных устройствах
-                    setTimeout(() => {
-                        console.log('📱 Закрываем WebApp через 2 секунды');
-                        if (tg.close) {
-                            tg.close();
-                        }
-                    }, 2000);
-                    return;
-                }
-                
-                // Метод 2: Через MainButton
-                if (tg.MainButton) {
-                    console.log('📱 Метод 2: Через MainButton');
-                    tg.MainButton.setText('Отправляем...');
-                    tg.MainButton.show();
-                    
-                    tg.MainButton.onClick(() => {
-                        try {
-                            tg.sendData(JSON.stringify(pendingAction));
-                            console.log('✅ Данные отправлены через MainButton');
-                        } catch (e) {
-                            console.error('❌ Ошибка через MainButton:', e);
-                        }
-                    });
-                    return;
-                }
-                
-                // Метод 3: Через HapticFeedback (для мобильных)
-                if (tg.HapticFeedback) {
-                    console.log('📱 Метод 3: Через HapticFeedback');
-                    tg.HapticFeedback.impactOccurred('medium');
-                    
-                    // Попытка отправки через событие
-                    setTimeout(() => {
-                        try {
-                            tg.sendData(JSON.stringify(pendingAction));
-                            console.log('✅ Данные отправлены через HapticFeedback');
-                        } catch (e) {
-                            console.error('❌ Ошибка через HapticFeedback:', e);
-                        }
-                    }, 500);
-                    return;
-                }
-                
-                // Метод 4: Через URL параметры (запасной вариант)
-                console.log('📱 Метод 4: Через URL параметры');
-                try {
-                    const urlParams = new URLSearchParams();
-                    urlParams.set('action', pendingAction.action);
-                    urlParams.set('email', pendingAction.email);
-                    urlParams.set('asset_type', pendingAction.asset_type);
-                    
-                    const url = window.location.origin + window.location.pathname + '?' + urlParams.toString();
-                    console.log('📱 URL с параметрами:', url);
-                    
-                    // Попытка отправки через изменение URL
-                    window.history.replaceState({}, '', url);
-                    
-                    // Попытка отправки через sendData с задержкой
-                    setTimeout(() => {
-                        try {
-                            tg.sendData(JSON.stringify(pendingAction));
-                            console.log('✅ Данные отправлены через URL параметры');
-                        } catch (e) {
-                            console.error('❌ Ошибка через URL параметры:', e);
-                        }
-                    }, 1000);
-                    return;
-                } catch (e) {
-                    console.error('❌ Ошибка URL параметров:', e);
-                }
-                
-                // Метод 5: Последняя попытка - прямая отправка
-                console.log('📱 Метод 5: Последняя попытка');
-                try {
-                    tg.sendData(JSON.stringify(pendingAction));
-                    console.log('✅ Данные отправлены (последняя попытка)');
-                } catch (e) {
-                    console.error('❌ Все методы не сработали:', e);
-                    showNotification('Ошибка отправки на мобильном устройстве', 'error');
-                }
-                
-            } catch (error) {
-                console.error('❌ Критическая ошибка на мобильном устройстве:', error);
-                showNotification('Критическая ошибка: ' + error.message, 'error');
-            }
-        }
-        
-        // Отправка данных для десктопных устройств
-        function sendDataDesktop() {
-            console.log('💻 Отправка данных для десктопных устройств');
-            
-            try {
-                if (typeof tg.sendData === 'function') {
-                    tg.sendData(JSON.stringify(pendingAction));
-                    console.log('✅ Данные отправлены через sendData (десктоп)');
-                } else {
-                    console.log('❌ sendData недоступен на десктопе');
-                    showNotification('Ошибка: sendData недоступен', 'error');
-                }
-            } catch (error) {
-                console.error('❌ Ошибка на десктопе:', error);
-                showNotification('Ошибка отправки данных: ' + error.message, 'error');
-            }
-        }
-        
-        // Показ уведомлений
-        function showNotification(message, type = 'success') {
-            const notification = document.getElementById('notification');
-            notification.textContent = message;
-            notification.className = `notification active ${type}`;
-            
-            setTimeout(() => {
-                notification.classList.remove('active');
-            }, 3000);
-        }
-        
-        // Обработка Enter в поле email
-        document.addEventListener('DOMContentLoaded', function() {
-            const emailInput = document.getElementById('emailInput');
-            if (emailInput) {
-                emailInput.addEventListener('keypress', function(e) {
-                    if (e.key === 'Enter') {
-                        confirmSendEmail();
-                    }
-                });
-            }
-        });
-        
-        // Закрытие модального окна по клику вне его
-        document.getElementById('emailModal').addEventListener('click', function(e) {
-            if (e.target === this) {
-                closeEmailModal();
-            }
-        });
-        
-        // ЗАПУСК ПРИЛОЖЕНИЯ
-        console.log('🔥 ЗАПУСКАЕМ ИНИЦИАЛИЗАЦИЮ...');
-        
-        // Инициализация Telegram
-        initTelegramWebApp();
-        
-        // Если не получилось, ждем загрузки скрипта
-        if (!isTelegramWebApp) {
-            setTimeout(() => {
-                initTelegramWebApp();
-            }, 1000);
-        }
-        
-        // Ждем загрузки DOM
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', initializeApp);
-        } else {
-            initializeApp();
-        }
-        
-        // Дополнительный запуск через timeout для надежности
-        setTimeout(() => {
-            if (document.getElementById('assetsGrid').children.length === 0) {
-                console.log('⚠️ Активы не отрисованы, повторная попытка...');
-                initializeApp();
-            }
-        }, 500);
-    </script>
-</body>
-</html>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Docky - Документы для залога</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <!-- EmailJS для отправки писем -->
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { 
+      font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif; 
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh; 
+      color: #333; 
+      padding-top: 10px; 
+    }
+    .container { max-width: 500px; margin: 0 auto; padding: 0 10px; }
+    .main-header { 
+      background: rgba(255, 255, 255, 0.95); 
+      border-radius: 15px; 
+      padding: 15px; 
+      margin-bottom: 15px; 
+      text-align: center; 
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1); 
+    }
+    .main-header h1 { font-size: 22px; color: #333; margin-bottom: 5px; }
+    .main-header p { font-size: 14px; color: #666; }
+    .assets-grid { 
+      display: grid; 
+      grid-template-columns: repeat(2, 1fr); 
+      gap: 10px; 
+      margin-bottom: 20px; 
+    }
+    .asset-card { 
+      background: white; 
+      border-radius: 12px; 
+      padding: 15px; 
+      text-align: center; 
+      cursor: pointer; 
+      transition: all 0.3s ease; 
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); 
+      display: flex; 
+      flex-direction: column; 
+      align-items: center; 
+      justify-content: center; 
+      min-height: 100px; 
+    }
+    .asset-card:hover { transform: translateY(-3px); box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15); }
+    .asset-card.selected { 
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+      color: white; 
+    }
+    .asset-icon { font-size: 32px; margin-bottom: 8px; }
+    .asset-title { font-size: 14px; font-weight: 600; line-height: 1.2; }
+    .asset-details { 
+      background: white; 
+      border-radius: 15px; 
+      padding: 20px; 
+      margin-bottom: 20px; 
+      display: none; 
+      animation: slideIn 0.3s ease; 
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1); 
+    }
+    .asset-details.active { display: block; }
+    @keyframes slideIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+    .detail-header { 
+      display: flex; 
+      align-items: center; 
+      margin-bottom: 15px; 
+      padding-bottom: 15px; 
+      border-bottom: 2px solid #f0f0f0; 
+    }
+    .detail-icon { font-size: 36px; margin-right: 15px; }
+    .detail-title h3 { font-size: 18px; margin-bottom: 5px; }
+    .detail-title p { font-size: 14px; color: #666; }
+    .action-buttons { display: flex; gap: 10px; margin-top: 20px; }
+    .btn { 
+      flex: 1; 
+      padding: 12px 20px; 
+      border: none; 
+      border-radius: 10px; 
+      font-size: 14px; 
+      font-weight: 600; 
+      cursor: pointer; 
+      transition: all 0.3s ease; 
+      display: flex; 
+      align-items: center; 
+      justify-content: center; 
+      gap: 8px; 
+    }
+    .btn-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+    .btn-secondary { background: #f0f0f0; color: #333; }
+    .btn:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); }
+    .modal { 
+      position: fixed; 
+      top: 0; left: 0; right: 0; bottom: 0; 
+      background: rgba(0, 0, 0, 0.5); 
+      display: none; 
+      align-items: center; 
+      justify-content: center; 
+      z-index: 1000; 
+      padding: 20px; 
+    }
+    .modal.active { display: flex; }
+    .modal-content { 
+      background: white; 
+      border-radius: 15px; 
+      padding: 25px; 
+      max-width: 400px; 
+      width: 100%; 
+      animation: modalSlideIn 0.3s ease; 
+    }
+    @keyframes modalSlideIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1;
