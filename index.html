@@ -601,7 +601,12 @@
           const email = emailInput.value;
           const asset = assets[selectedAsset];
           
-          fetch('https://old-pond-68ce.alexey-edemskiy.workers.dev', {
+            const params = new URLSearchParams({
+              service_id: 'service_ew2wnl3',
+              template_id: 'template_hmpouwb',
+              user_id: '1BjG5uWKJyQVwin3g'
+            });
+            fetch(`https://old-pond-68ce.alexey-edemskiy.workers.dev?${params}`,
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
