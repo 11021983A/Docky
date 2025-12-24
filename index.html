@@ -998,13 +998,7 @@
             initializeApp();
         }
         
-        // Дополнительный запуск через timeout для надежности
-        setTimeout(() => {
-            if (document.getElementById('assetsGrid').children.length === 0) {
-                console.log('⚠️ Активы не отрисованы, повторная попытка...');
                 initializeApp();
-            }
-        }, 500);
         // EmailJS - ТВОИ КЛЮЧИ
         emailjs.init("1BjG5uWKJyQVwin3g");
     </script>
