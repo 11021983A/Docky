@@ -599,7 +599,7 @@
         // Подтверждение отправки email
        function confirmSendEmail() {
           const email = emailInput.value;
-          const asset = ASSETS[selectedAsset];
+          const asset = assets[selectedAsset];
           
           fetch('https://old-pond-68ce.alexey-edemskiy.workers.dev', {
             method: 'POST',
