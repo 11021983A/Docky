@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Выберите актив</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
     <meta http-equiv="Pragma" content="no-cache"/>
     <meta http-equiv="Expires" content="0"/>
@@ -598,59 +597,39 @@
         }
         
         // Подтверждение отправки email
-        function confirmSendEmail() {
-            const email = document.getElementById('emailInput').value.trim();
-            const submitBtn = document.querySelector('.modal-buttons .btn-primary');
-            const cancelBtn = document.querySelector('.modal-buttons .btn-secondary');
-            
-            if (submitBtn) {
-                submitBtn.disabled = true;
-                submitBtn.textContent = 'Отправляем...';
-            }
-            if (cancelBtn) cancelBtn.disabled = true;
-            
-            if (!email) {
-                showNotification('❌ Введите email!', 'error');
-                if (submitBtn) {
-                    submitBtn.disabled = false;
-                    submitBtn.textContent = 'Отправить на email';
-                }
-                if (cancelBtn) cancelBtn.disabled = false;
-                return;
-            }
-            
-            const asset = assets[selectedAsset];
-            
-            // EmailJS - твои ключи
-            emailjs.send('service_ew2wnl3', 'template_hmpouwb', {
+       function confirmSendEmail() {
+          const email = emailInput.value;
+          const asset = ASSETS[selectedAsset];
+          
+          fetch('https://old-pond-68ce.alexey-edemskiy.workers.dev', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              service_id: 'service_ew2wnl3',
+              template_id: 'template_hmpouwb',
+              user_id: '1BjG5uWKJyQVwin3g',
+              template_params: {
                 to_email: email,
                 asset_title: asset.title,
                 asset_filename: asset.filename,
                 user_name: tg?.initDataUnsafe?.user?.first_name || 'Клиент'
-            }, '1BjG5uWKJyQVwin3g')
-            .then(function(response) {
-                showNotification('✅ Отправлено на ' + email + '!', 'success');
-                closeEmailModal();
-                // Уведомление боту
-                if (tg && tg.sendData) {
-                    tg.sendData(JSON.stringify({
-                        action: "sendemail",
-                        email: email,
-                        assettype: selectedAsset
-                    }));
-                }
-            }, function(error) {
-                showNotification('❌ Ошибка отправки', 'error');
-                console.error('EmailJS error:', error);
+              }
             })
-            .finally(() => {
-                if (submitBtn) {
-                    submitBtn.disabled = false;
-                    submitBtn.textContent = 'Отправить на email';
-                }
-                if (cancelBtn) cancelBtn.disabled = false;
-            });
+          })
+          .then(response => {
+            if (response.ok) {
+              showNotification(`✅ Отправлено на ${email}`, 'success');
+              closeEmailModal();
+            } else {
+              throw new Error('Серверная ошибка');
+            }
+          })
+          .catch(error => {
+            console.error('EmailJS error:', error);
+            showNotification('❌ Ошибка отправки', 'error');
+          });
         }
+
 
         
         function sendEmailViaMainButton() {
